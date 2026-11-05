@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f3f0e9" />
+    <link rel="icon" href="data:," />
+    <link rel="preload" href="/logo-outline.png" as="image">
+    <script>
+      // A reload always starts with the mark. In-page anchors still work once
+      // the portfolio is open, but cannot bypass the opening on a fresh load.
+      history.scrollRestoration = 'manual';
+      if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
+      window.scrollTo(0, 0);
+    </script>
+    <title>Swarit Sawarkar — Portfolio</title>
+  </head>
+  <body>
+    <div class="intro-track" aria-label="Interactive portfolio introduction">
+      <div id="intro-stage" role="img" aria-label="Swarit Sawarkar’s S mark">
+        <canvas id="logo-fallback" aria-hidden="true"></canvas>
+        <canvas id="liquid-canvas" aria-hidden="true"></canvas>
+      </div>
+    </div>
+
+    <div id="portfolio" aria-hidden="true" inert></div>
+    <div id="outro" class="outro-track" aria-hidden="true"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

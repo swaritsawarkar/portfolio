@@ -1,0 +1,5 @@
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.is-building) body.is-revealed:not(.is-outro) #portfolio .is-velocity-moving {
+    transform: translate3d(0, var(--portfolio-drift), 0) skewY(var(--portfolio-shear));
+  }
+}
