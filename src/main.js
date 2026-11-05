@@ -107,10 +107,8 @@ function startHold() {
 
 function completeCover() {
   if (!ending) {
-    if (reversingEntry) {
-      reversingEntry = false;
-      scrollTo({ top: track.offsetHeight, behavior: 'instant' });
-    }
+    reversingEntry = false;
+    scrollTo({ top: track.offsetHeight, behavior: 'instant' });
     setRevealed(true);
     return;
   }

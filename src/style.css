@@ -27,7 +27,7 @@ body {
 
 .intro-track {
   height: 180vh;
-  height: 180dvh;
+  height: 180svh;
 }
 
 #intro-stage {
@@ -105,6 +105,13 @@ body.is-revealed #portfolio {
   height: 280vh;
   height: 280dvh;
   background: var(--ink);
+}
+
+@media (max-width: 700px) and (pointer: coarse) {
+  .intro-track {
+    height: 240vh;
+    height: 240svh;
+  }
 }
 
 body.is-revealed .outro-track { display: block; }
