@@ -1,4 +1,4 @@
-create function portfolio_private.wall_bounds(signature_name text, strokes jsonb)
+create or replace function portfolio_private.wall_bounds(signature_name text, strokes jsonb)
 returns integer[]
 language plpgsql
 immutable
@@ -61,7 +61,7 @@ $$;
 revoke all on function portfolio_private.wall_bounds(text, jsonb) from public;
 grant execute on function portfolio_private.wall_bounds(text, jsonb) to anon, authenticated, service_role;
 
-create table public.portfolio_wall_marks (
+create table if not exists public.portfolio_wall_marks (
   id uuid primary key default gen_random_uuid(),
   name text not null check (
     char_length(name) between 1 and 40 and name = btrim(name)
@@ -82,28 +82,36 @@ grant select (id, name, strokes, bounds) on public.portfolio_wall_marks to anon,
 grant insert (name, strokes) on public.portfolio_wall_marks to anon;
 grant delete on public.portfolio_wall_marks to authenticated;
 
+drop policy if exists "Anyone can read wall marks" on public.portfolio_wall_marks;
 create policy "Anyone can read wall marks"
   on public.portfolio_wall_marks for select to anon, authenticated using (true);
+drop policy if exists "Anyone can sign the wall" on public.portfolio_wall_marks;
 create policy "Anyone can sign the wall"
   on public.portfolio_wall_marks for insert to anon with check (true);
+drop policy if exists "Only the portfolio owner can remove wall marks" on public.portfolio_wall_marks;
 create policy "Only the portfolio owner can remove wall marks"
   on public.portfolio_wall_marks for delete to authenticated
   using ((select auth.jwt()) -> 'app_metadata' -> 'portfolio_wall_admin' = 'true'::jsonb);
 
-lock table public.portfolio_signatures in access exclusive mode;
-revoke insert (slot, name, strokes) on public.portfolio_signatures from anon;
-delete from public.portfolio_signatures
-where id = 'f9761679-127f-40a5-a404-3dc30efdc9ea' and name = 'SWARIT !!';
+do $$
+begin
+  lock table public.portfolio_signatures in access exclusive mode;
+  revoke insert (slot, name, strokes) on public.portfolio_signatures from anon;
+  delete from public.portfolio_signatures
+  where id = 'f9761679-127f-40a5-a404-3dc30efdc9ea' and name = 'SWARIT !!';
 
-insert into public.portfolio_wall_marks (id, name, strokes, created_at)
-select entry.id, entry.name, (
-  select jsonb_agg((
-    select jsonb_agg(jsonb_build_array(
-      32 + (entry.slot % 4) * 450 + (point ->> 0)::integer,
-      32 + (entry.slot / 4) * 248 + (point ->> 1)::integer
-    ) order by point_number)
-    from jsonb_array_elements(stroke) with ordinality as p(point, point_number)
-  ) order by stroke_number)
-  from jsonb_array_elements(entry.strokes) with ordinality as s(stroke, stroke_number)
-), entry.created_at
-from public.portfolio_signatures as entry;
+  insert into public.portfolio_wall_marks (id, name, strokes, created_at)
+  select entry.id, entry.name, (
+    select jsonb_agg((
+      select jsonb_agg(jsonb_build_array(
+        32 + (entry.slot % 4) * 450 + (point ->> 0)::integer,
+        32 + (entry.slot / 4) * 248 + (point ->> 1)::integer
+      ) order by point_number)
+      from jsonb_array_elements(stroke) with ordinality as p(point, point_number)
+    ) order by stroke_number)
+    from jsonb_array_elements(entry.strokes) with ordinality as s(stroke, stroke_number)
+  ), entry.created_at
+  from public.portfolio_signatures as entry
+  on conflict (id) do nothing;
+end;
+$$;
