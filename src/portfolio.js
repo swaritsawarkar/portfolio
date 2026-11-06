@@ -1,6 +1,7 @@
 import { projects } from './data/projects';
 import { genZCoverItem, davinciPanels, davinciPosterSeries, davinciTeamSeries } from './data/creative';
 import { mountPhotoCarousel } from './photo-carousel.js';
+import { mountSigningWall, signingWall } from './signing-wall.js';
 import './portfolio.css';
 
 const base = import.meta.env.BASE_URL;
@@ -234,9 +235,11 @@ export function mountPortfolio(root) {
     chapter('achievements', 'Field notes.', 'Photos from competitions and events.', achievements, 'Achievements') +
     chapter('timeline', 'Along the way.', 'School, competitions, and projects since 2023.', history, 'Timeline') +
     chapter('skills', 'Skills.', '', stack) +
+    chapter('signatures', 'Sign the wall.', 'Pick a square, draw with a little ink, and leave your name.', signingWall) +
     chapter('contact', 'Contact.', 'Get in touch.', contact) + '</main>';
 
   mountPhotoCarousel(root.querySelector('.wins-carousel'));
+  mountSigningWall(root.querySelector('#signatures'));
   root.addEventListener('click', (event) => {
     const skill = event.target.closest('.skill-tile');
     if (skill) {

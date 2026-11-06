@@ -252,7 +252,7 @@ function groupByView(scene, pieces) {
 
 const sceneTimes = {
   home: 5600, work: 8600, creative: 4200, about: 5500,
-  achievements: 6800, timeline: 5400, skills: 5600, contact: 3600,
+  achievements: 6800, timeline: 5400, skills: 5600, signatures: 1850, contact: 3600,
 };
 
 function planJobs(pieces, actors, opening) {

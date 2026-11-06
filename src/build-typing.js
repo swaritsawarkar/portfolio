@@ -92,7 +92,7 @@ export function createTyping() {
   }
   return {
     prepare(element) {
-      if (!pending) return [];
+      if (!pending || element.hasAttribute('data-build-static')) return [];
       const readable = element.matches('[data-part="type"], .work-metric');
       let correction = element.matches('.work-lead .work-summary') ? 'select'
         : element.matches('.hero-deck, .about-copy p:nth-child(2)') ? 'typo' : null;
