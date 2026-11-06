@@ -106,12 +106,20 @@ function prepare(scene, typing, sceneIndex) {
     const disclosure = target.closest('details:not([open])');
     return !disclosure || disclosure === target;
   });
+  const opening = ['#portfolio-name', '.hero-deck', '.wordmark', '.portrait', '.hero-link']
+    .map((selector) => scene.querySelector(selector));
+  if (scene.id === 'home') {
+    targets.sort((a, b) => (opening.includes(a) ? opening.indexOf(a) : opening.length)
+      - (opening.includes(b) ? opening.indexOf(b) : opening.length));
+  }
   const counts = new Map();
   const pieces = targets.map((target) => {
     const kind = target.dataset.part || 'media';
     const order = counts.get(kind) ?? 0;
     counts.set(kind, order + 1);
-    const preferred = kind === 'frame' ? 1 : kind === 'link' ? 2 : kind === 'media' ? 3
+    const openingLane = opening.indexOf(target);
+    const preferred = openingLane >= 0 ? openingLane
+      : kind === 'frame' ? 1 : kind === 'link' ? 2 : kind === 'media' ? 3
       : kind === 'skill' || target.closest('.timeline-list') ? 4 : kind === 'box' ? 1 : 0;
     const basePlacement = kind === 'skill' ? 225 : kind === 'frame' ? 460
       : kind === 'media' || kind === 'box' ? 495 : 260;
@@ -243,20 +251,25 @@ const sceneTimes = {
   achievements: 6800, timeline: 5400, skills: 5600, contact: 3600,
 };
 
-function planJobs(pieces, actors) {
+function planJobs(pieces, actors, opening) {
   const jobs = [];
   const placements = new Map();
   for (const piece of pieces) {
-    const placement = { piece, duration: piece.placement, preferred: piece.preferred };
-    placements.set(piece, placement);
-    jobs.push(placement);
+    const direct = opening && piece.kind !== 'media';
+    let placement;
+    if (!direct || !piece.tracks.length) {
+      placement = { piece, direct, duration: piece.placement, preferred: piece.preferred };
+      placements.set(piece, placement);
+      jobs.push(placement);
+    }
+    const click = direct ? 52 : clickTime;
     const primary = piece.tracks.filter((track) => track.start === 0);
     const parallel = piece.tracks.filter((track) => track.start > 0).map((track) => [track]);
     for (const tracks of [primary, ...parallel]) {
       if (!tracks.length) continue;
       jobs.push({
-        piece, tracks, after: placement, preferred: piece.preferred,
-        duration: clickTime + tracks.reduce((sum, track) => sum + track.duration, 0),
+        piece, tracks, after: placement, preferred: piece.preferred, direct, click,
+        duration: click + tracks.reduce((sum, track) => sum + track.duration, 0),
       });
     }
   }
@@ -311,24 +324,27 @@ function setTypeArea(actor, piece, t, from) {
 }
 
 function paintText(actor, job, time, typing) {
-  let elapsed = Math.max(0, time - clickTime);
-  const { tracks, from } = job;
+  const { tracks, from, click, piece } = job;
+  let elapsed = Math.max(0, time - click);
   while (job.trackIndex < tracks.length - 1 && elapsed >= tracks[job.trackIndex].duration) {
     const complete = tracks[job.trackIndex++];
     typing.reveal(complete);
   }
   const track = tracks[job.trackIndex];
   for (let i = 0; i < job.trackIndex; i++) elapsed -= tracks[i].duration;
-  if (time < clickTime) {
+  if (time < click) {
     const range = document.createRange();
     range.setStart(track.node, track.start);
     range.collapse(true);
     const start = range.getBoundingClientRect();
-    const p = ease(time / clickTime);
-    actor.hover(mix(from.x, start.left + 5, p), mix(from.y, start.top + 5, p), p > .72);
+    const p = ease(time / click);
+    const x = clamp(start.left + 5, 7, viewportWidth() - 24);
+    const y = clamp(start.top + 5, 9, innerHeight - 64);
+    actor.put(mix(from.x, x, p), mix(from.y, y, p), p > .72);
     return;
   }
 
+  if (job.direct && piece.target.dataset.buildState !== 'placed') place(piece);
   const caret = typing.type(track, Math.max(0, elapsed), actor);
   if (!caret?.height) return;
   const rect = track.node.parentElement.getBoundingClientRect();
@@ -340,6 +356,7 @@ function paintText(actor, job, time, typing) {
 
 function finishJob(actor, job, typing) {
   if (job.tracks) {
+    if (job.direct && job.piece.target.dataset.buildState !== 'placed') place(job.piece);
     job.tracks.forEach(typing.reveal);
     actor.caret.hidden = true;
   } else place(job.piece);
@@ -354,7 +371,7 @@ function planBuild(scenes, actors, rail, home) {
   const railLimit = rail.scrollWidth - rail.clientWidth;
   for (const {scene, pieces} of scenes) {
     const batches = groupByView(scene, pieces).map((batch) => ({
-      ...batch, ...planJobs(batch.pieces, actors),
+      ...batch, ...planJobs(batch.pieces, actors, scene.id === 'home'),
     }));
     const weights = batches.map((batch) => 300 + batch.duration ** .83);
     const total = weights.reduce((sum, weight) => sum + weight, 0);
@@ -418,7 +435,7 @@ async function assemble(scenes, actors, rail, home, signal, clock, typing) {
       const p = clamp((time - job.start) / (job.end - job.start));
       if (job.tracks) paintText(actor, job, p * job.duration, typing);
       else if (job.piece.kind === 'frame') drawFrame(actor, job.piece, p, job.from);
-      else if (job.piece.kind === 'copy' || job.piece.kind === 'type') setTypeArea(actor, job.piece, p, job.from);
+      else if (job.direct || job.piece.kind === 'copy' || job.piece.kind === 'type') setTypeArea(actor, job.piece, p, job.from);
       else grab(actor, job.piece, p, job.from);
     });
   }, signal, clock);
