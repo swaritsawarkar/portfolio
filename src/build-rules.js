@@ -4,6 +4,8 @@ const edges = [
   ['.creative-archive', 'Bottom'],
   ['.portfolio-nav', 'Bottom'],
   ['.chapter:not(#work)', 'Top'],
+  ['.about-copy, .wins-controls, .skills-grid, .contact-grid', 'Top'],
+  ['.skill-row', 'Bottom'],
 ];
 
 export function prepareRules(portfolio) {

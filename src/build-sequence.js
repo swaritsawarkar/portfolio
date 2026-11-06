@@ -268,9 +268,8 @@ function planJobs(pieces, actors, opening) {
       jobs.push(placement);
     }
     const click = direct ? 52 : clickTime;
-    const primary = piece.tracks.filter((track) => track.start === 0);
-    const parallel = piece.tracks.filter((track) => track.start > 0).map((track) => [track]);
-    for (const tracks of [primary, ...parallel]) {
+    const groups = piece.target.id === 'portfolio-name' ? [piece.tracks] : piece.tracks.map(track => [track]);
+    for (const tracks of groups) {
       if (!tracks.length) continue;
       jobs.push({
         piece, tracks, after: placement, preferred: piece.preferred, direct, click,
@@ -279,6 +278,12 @@ function planJobs(pieces, actors, opening) {
     }
   }
   for (const [piece, job] of placements) job.after = placements.get(piece.after);
+  const downstream = new Map();
+  for (const job of jobs) {
+    for (let parent = job.after; parent; parent = parent.after) {
+      downstream.set(parent, Math.max(downstream.get(parent) ?? 0, job.duration));
+    }
+  }
 
   const free = actors.map(() => 0);
   const ordered = [];
@@ -286,13 +291,16 @@ function planJobs(pieces, actors, opening) {
     const firstFree = Math.min(...free);
     let nextIndex = -1;
     let earliest = Infinity;
+    let longest = 0;
     for (const [index, job] of jobs.entries()) {
       const dependency = job.after ? job.after.end : 0;
       if (dependency === undefined) continue;
       const start = Math.max(firstFree, dependency);
-      if (start < earliest) {
+      const remaining = job.duration + (downstream.get(job) ?? 0);
+      if (start < earliest || (!opening && start === earliest && remaining > longest)) {
         nextIndex = index;
         earliest = start;
+        longest = remaining;
       }
     }
     const [job] = jobs.splice(nextIndex, 1);
@@ -418,7 +426,7 @@ function planBuild(scenes, actors, rail, home) {
       const travel = Math.abs(top - previous.top) > 8 || Math.abs(left - previous.rail) > 8
         ? Math.min(540, slot * .34) : 0;
       const lead = travel && previous.scene?.id !== 'timeline' ? Math.min(130, duration * .12) : 0;
-      camera.push({ start: duration - lead, end: duration + travel, from: previous, top, rail: left, scene });
+      camera.push({ start: duration - lead, end: duration + travel, from: previous, top, rail: left, scene, pieces: batch.pieces });
 
       const scale = (slot - travel) / Math.max(1, batch.duration);
       for (const job of batch.jobs) {
@@ -430,6 +438,44 @@ function planBuild(scenes, actors, rail, home) {
     }
   }
   return { lanes, camera, duration };
+}
+
+function moveBetweenJobs(actor, lane, job, previous, shot, time) {
+  const gap = actor.gap;
+  const sameGap = gap?.job === job && gap?.previous === previous && gap?.shot === shot;
+  if (!sameGap || time - gap.start >= 1050) {
+    const visible = shot.pieces.filter((piece) => {
+      if (piece.target.dataset.buildState !== 'placed') return false;
+      const rect = pieceRect(piece);
+      return rect.bottom > 40 && rect.top < innerHeight - 100 && rect.right > 0 && rect.left < viewportWidth();
+    });
+    const pass = sameGap ? gap.pass + 1 : 0;
+    actor.gap = {
+      job, previous, shot, start: time, x: actor.x, y: actor.y,
+      pass, check: visible[(lane + pass) % visible.length] ?? job?.piece,
+    };
+  }
+  const { start, x, y, check, pass } = actor.gap;
+  const elapsed = time - start;
+  const rect = check ? pieceRect(check) : job?.rule?.target.getBoundingClientRect();
+  const [stationX, stationY] = actor.role.station;
+  const width = viewportWidth();
+  const targetX = rect ? rect.left + rect.width * (.15 + lane * .16) : width * stationX;
+  const targetY = rect ? rect.top + Math.min(rect.height * .55, 65) : innerHeight * stationY;
+  const reach = ease(elapsed / 460);
+  const sweep = Math.sin(Math.min(elapsed / 1350, 1) * Math.PI / 2);
+  const bend = Math.sin(reach * Math.PI) * actor.role.arc;
+  const endX = clamp(targetX, 16, width - 60);
+  const endY = clamp(targetY, 20, innerHeight - 90);
+  const direction = (lane + pass) % 2 ? -1 : 1;
+  actor.hover(mix(x, endX, reach) + bend + sweep * direction * 24,
+    mix(y, endY, reach) - bend * .6 - sweep * direction * 18);
+  if (!job || time < job.start - 270) return;
+  const destination = job.rule ? job.rule.target.getBoundingClientRect() : pieceRect(job.piece);
+  const pickup = !job.rule && !job.tracks && pickupRoutes[job.piece.kind] ? pickupOffset(job.piece, destination) : { x: 0, y: 0 };
+  const p = ease(1 - (job.start - time) / Math.min(270, job.start - start || 1));
+  actor.hover(mix(actor.x, clamp((job.reverse ? destination.right : destination.left) + pickup.x + 12, 7, width - 24), p),
+    mix(actor.y, clamp(destination.top + pickup.y - 14, 9, innerHeight - 64), p));
 }
 
 async function assemble(scenes, actors, rail, home, signal, clock, typing, rules) {
@@ -452,19 +498,8 @@ async function assemble(scenes, actors, rail, home, signal, clock, typing, rules
       const jobs = lanes[lane];
       while (jobs[indices[lane]]?.end <= time + .01) finishJob(actor, jobs[indices[lane]++], typing);
       const job = jobs[indices[lane]];
-      if (!job) return;
-      job.from ??= { x: actor.x, y: actor.y };
-      if (time < job.start) {
-        if (job.rule) return;
-        const available = jobs[indices[lane] - 1]?.end ?? 0;
-        const approach = Math.max(available, job.start - 220);
-        if (time < approach) return;
-        const rect = pieceRect(job.piece);
-        const p = ease((time - approach) / (job.start - approach));
-        const pickup = !job.tracks && pickupRoutes[job.piece.kind] ? pickupOffset(job.piece, rect) : { x: 0, y: 0 };
-        const x = clamp(rect.left + pickup.x + 18, 7, viewportWidth() - 24);
-        const y = clamp(rect.top + pickup.y - 22, 9, innerHeight - 64);
-        actor.put(mix(job.from.x, x, p), mix(job.from.y, y, p));
+      if (!job || time < job.start) {
+        moveBetweenJobs(actor, lane, job, jobs[indices[lane] - 1], shot, time);
         return;
       }
       if (!job.active) {
