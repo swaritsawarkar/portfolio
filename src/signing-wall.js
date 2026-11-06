@@ -1,5 +1,6 @@
-import { extend, measure, overlaps, paper, paperPoint, renderInk, renderMark, wallBounds } from './signing-ink.js';
+import { extend, measure, paper, paperPoint, renderInk, renderMark, wallBounds } from './signing-ink.js';
 import { signingConfigured, signingStore } from './signing-store.js';
+import { packMarks } from './signing-layout.js';
 import { track } from './portfolio-analytics.js';
 import './signing-wall.css';
 
@@ -61,14 +62,14 @@ export function mountSigningWall(section) {
   const visitor = getVisitor();
   let marks = [];
   let strokes = [];
-  let height = 1200;
+  let height = 900;
+  let width = 1800;
   let ready = false;
   let busy = false;
   let pan = false;
   let near = false;
   let requestId = 0;
   let pointer;
-  let blocked = false;
 
   function lockSigning(remember = true) {
     visitor.signed = true;
@@ -82,27 +83,53 @@ export function mountSigningWall(section) {
   }
 
   function setHeight(next) {
-    height = Math.min(paper.height, Math.max(height, next));
-    board.setAttribute('viewBox', '0 0 ' + paper.width + ' ' + height);
-    button('extend').hidden = height === paper.height;
+    height = Math.max(height, next);
+    board.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    button('extend').hidden = height >= paper.height;
   }
 
-  function paintSaved() {
-    const groups = marks.map((entry) => {
+  function paintSaved(animateId) {
+    const layout = packMarks(marks, width);
+    const groups = layout.map(({ entry, box, left, top, scale, inkHeight }) => {
       const group = document.createElementNS(board.namespaceURI, 'g');
       group.dataset.mark = entry.id;
-      renderMark(group, entry);
+      group.dataset.bounds = JSON.stringify(box);
+      const ink = document.createElementNS(board.namespaceURI, 'g');
+      renderInk(ink, entry.strokes);
+      const tx = box[0] - left * scale, ty = box[1] - top * scale;
+      ink.setAttribute('transform', `translate(${tx} ${ty}) scale(${scale})`);
+      const label = document.createElementNS(board.namespaceURI, 'foreignObject');
+      label.setAttribute('x', box[0]);
+      label.setAttribute('y', box[1] + inkHeight + 8);
+      label.setAttribute('width', box[2] - box[0] - 16);
+      label.setAttribute('height', 32);
+      const text = document.createElement('div');
+      text.className = 'wall-name wall-packed-name';
+      text.textContent = entry.name;
+      text.title = entry.name;
+      label.append(text);
+      group.append(ink, label);
+      if (entry.id === animateId && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        ink.animate([
+          { transform: 'translate(0px, 0px) scale(1)' },
+          { transform: `translate(${tx}px, ${ty}px) scale(${scale})` },
+        ], { duration: 700, easing: 'cubic-bezier(.22,1,.36,1)' });
+        label.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700 });
+      }
       return group;
     });
     saved.replaceChildren(...groups);
     find('.wall-count').textContent = marks.length + (marks.length === 1 ? ' signature' : ' signatures');
-    setHeight(Math.max(1200, ...marks.map(({bounds}) => bounds[3] + 150)));
-  }
-
-  function collides() {
-    if (!strokes.length) return false;
-    const bounds = wallBounds(strokes, nameInput.value.trim());
-    return marks.some((mark) => overlaps(bounds, mark.bounds));
+    setHeight(Math.max(900, ...layout.map(({box}) => box[3] + 300)));
+    const landing = layout.find(({entry}) => entry.id === animateId);
+    if (landing) {
+      const ratio = board.getBoundingClientRect().width / width;
+      const y = landing.box[1] * ratio;
+      if (y < viewport.scrollTop || landing.box[3] * ratio > viewport.scrollTop + viewport.clientHeight) {
+        viewport.scrollTo({ top: Math.max(0, y - 30), behavior:
+          matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+      }
+    }
   }
 
   function paintDraft() {
@@ -116,7 +143,7 @@ export function mountSigningWall(section) {
     find('.wall-ink-count').textContent = remaining < 2 ? 'Out of ink' : Math.ceil(remaining / paper.ink * 100) + '% ink';
     const locked = visitor.signed || !visitor.id;
     nameInput.disabled = locked;
-    submit.disabled = locked || busy || !ready || !strokes.length || collides();
+    submit.disabled = locked || busy || !ready || !strokes.length;
     submit.textContent = visitor.signed ? 'Already signed' : 'Sign the wall';
     button('undo').disabled = locked || busy || !strokes.length;
     button('clear').disabled = locked || busy || !strokes.length;
@@ -137,7 +164,7 @@ export function mountSigningWall(section) {
       ready = true;
       button('refresh').hidden = true;
       if (!strokes.length) notice.textContent = visitor.signed ? signedMessage
-        : 'Draw anywhere there’s room. Your name goes below your mark.';
+        : 'Draw anywhere. We’ll tuck your signature into the wall when you sign.';
       paintSaved();
     } catch {
       if (current !== requestId) return false;
@@ -149,7 +176,7 @@ export function mountSigningWall(section) {
     return ready;
   }
 
-  const point = (event, bounds) => paperPoint(event.clientX, event.clientY, bounds, height);
+  const point = (event, bounds) => paperPoint(event.clientX, event.clientY, bounds, height, width);
   const pointsUsed = () => strokes.reduce((count, stroke) => count + stroke.length, 0);
 
   board.addEventListener('pointerdown', (event) => {
@@ -157,22 +184,16 @@ export function mountSigningWall(section) {
         strokes.length >= paper.strokes || measure(strokes) + paper.lift > paper.ink || pointsUsed() >= paper.points) return;
     if (document.activeElement === nameInput) nameInput.blur();
     strokes.push([point(event, board.getBoundingClientRect())]);
-    if (collides()) {
-      strokes.pop();
-      notice.textContent = 'That area is taken. Try a clear spot.';
-      return;
-    }
     event.preventDefault();
     pointer = event.pointerId;
-    blocked = false;
     board.setPointerCapture(pointer);
     track('wall', 'started');
-    notice.textContent = 'Your ink stays on this wall after you sign.';
+    notice.textContent = 'Draw freely. Your signature settles into its own space after saving.';
     paintDraft();
   });
 
   board.addEventListener('pointermove', (event) => {
-    if (event.pointerId !== pointer || blocked || pointsUsed() >= paper.points) return;
+    if (event.pointerId !== pointer || pointsUsed() >= paper.points) return;
     const samples = event.getCoalescedEvents?.() ?? [];
     const bounds = board.getBoundingClientRect();
     const stroke = strokes.at(-1);
@@ -180,12 +201,6 @@ export function mountSigningWall(section) {
     for (const sample of samples.length ? samples : [event]) {
       if (pointsUsed() >= paper.points) break;
       if (!extend(stroke, point(sample, bounds), paper.ink - measure(strokes))) continue;
-      if (collides()) {
-        stroke.pop();
-        blocked = true;
-        notice.textContent = 'You reached another signature. Lift your pen and leave some space.';
-        break;
-      }
       changed = true;
     }
     if (changed) paintDraft();
@@ -195,8 +210,7 @@ export function mountSigningWall(section) {
   }
 
   nameInput.addEventListener('input', () => {
-    if (collides()) notice.textContent = 'Your name needs a little more room. Clear some space or shorten it.';
-    else if (strokes.length) notice.textContent = 'Your name will appear below your mark.';
+    if (strokes.length) notice.textContent = 'Your name will appear below your mark.';
     paintDraft();
   });
 
@@ -209,10 +223,6 @@ export function mountSigningWall(section) {
       nameInput.focus();
       return;
     }
-    if (collides()) {
-      notice.textContent = 'Your signature needs a clear spot.';
-      return;
-    }
     busy = true;
     pointer = undefined;
     paintDraft();
@@ -223,7 +233,7 @@ export function mountSigningWall(section) {
       ++requestId;
       marks.push(entry);
       lockSigning();
-      paintSaved();
+      paintSaved(entry.id);
       notice.textContent = 'Your signature is on the wall.';
     } catch (error) {
       if (error.code === '23505') {
@@ -257,7 +267,7 @@ export function mountSigningWall(section) {
     } else if (action === 'extend') {
       const previous = height;
       setHeight(height + 700);
-      viewport.scrollTop = previous / paper.width * board.getBoundingClientRect().width - 70;
+      viewport.scrollTop = previous / width * board.getBoundingClientRect().width - 70;
     } else if (action === 'refresh') void refresh();
   });
 
@@ -267,6 +277,13 @@ export function mountSigningWall(section) {
       if (near) void refresh();
     }
   });
+  new ResizeObserver(() => {
+    const next = Math.min(paper.width, Math.max(620, Math.round(viewport.clientWidth * 1.3)));
+    if (next === width || pointer !== undefined || strokes.length || busy) return;
+    width = next;
+    height = Math.max(650, Math.round(viewport.clientHeight * width / viewport.clientWidth));
+    paintSaved();
+  }).observe(viewport);
   setHeight(height);
   paintDraft();
   notice.textContent = signingConfigured ? 'Loading the wall…' : 'The shared wall is awaiting setup.';

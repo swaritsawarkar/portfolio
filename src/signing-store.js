@@ -6,7 +6,7 @@ const hosted = import.meta.env.PROD ? {
 const origin = (import.meta.env.VITE_SIGNING_SUPABASE_URL ?? hosted.url ?? '').replace(/\/$/, '');
 const key = import.meta.env.VITE_SIGNING_SUPABASE_KEY ?? hosted.key;
 const collection = '/rest/v1/portfolio_wall_marks';
-const fields = '?select=id,name,strokes,bounds';
+const fields = '?select=id,name,strokes,bounds,display_order';
 const ownerEmail = import.meta.env.VITE_SIGNING_OWNER_EMAIL ?? 'sawarkarswarit@gmail.com';
 
 export const signingConfigured = Boolean(origin && key?.startsWith('sb_publishable_'));
@@ -49,15 +49,15 @@ export const signingStore = {
     const marks = [];
     let after = '';
     for (;;) {
-      const page = await request(collection + fields + '&order=id.asc&limit=300' + after);
+      const page = await request(collection + fields + '&order=display_order.asc&limit=300' + after);
       marks.push(...page);
       if (page.length < 300) return marks;
-      after = '&id=gt.' + encodeURIComponent(page.at(-1).id);
+      after = '&display_order=gt.' + encodeURIComponent(page.at(-1).display_order);
     }
   },
   async sign(name, strokes, visitorId) {
     const [entry] = await request(collection + fields, {
-      method: 'POST', body: JSON.stringify({ name, strokes, visitor_id: visitorId }),
+      method: 'POST', body: JSON.stringify({ name, strokes, visitor_id: visitorId, packed: true }),
       headers: { Prefer: 'return=representation' },
     });
     return entry;

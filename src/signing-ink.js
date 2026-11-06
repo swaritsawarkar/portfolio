@@ -1,10 +1,10 @@
 export const paper = { width: 1800, height: 8200, ink: 1800, lift: 8, strokes: 48, points: 1200 };
 
 const distance = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
-export function paperPoint(x, y, box, height) {
+export function paperPoint(x, y, box, height, width = paper.width) {
   return [
-    Math.max(14, Math.min(paper.width - 14, Math.round((x - box.left) * paper.width / box.width))),
-    Math.max(14, Math.min(height - 54, Math.round((y - box.top) * height / box.height))),
+    Math.max(14, Math.min(width - 14, Math.round((x - box.left) * width / box.width))),
+    Math.max(14, Math.min(height - 54, paper.height - 54, Math.round((y - box.top) * height / box.height))),
   ];
 }
 
