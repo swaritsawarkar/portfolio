@@ -5,7 +5,9 @@ const hosted = import.meta.env.PROD ? {
 } : {};
 const origin = (import.meta.env.VITE_SIGNING_SUPABASE_URL ?? hosted.url ?? '').replace(/\/$/, '');
 const key = import.meta.env.VITE_SIGNING_SUPABASE_KEY ?? hosted.key;
-const collection = '/rest/v1/portfolio_signatures';
+const collection = '/rest/v1/portfolio_wall_marks';
+const fields = '?select=id,name,strokes,bounds';
+const ownerEmail = import.meta.env.VITE_SIGNING_OWNER_EMAIL ?? 'sawarkarswarit@gmail.com';
 
 export const signingConfigured = Boolean(origin && key?.startsWith('sb_publishable_'));
 
@@ -31,17 +33,27 @@ async function request(path, { token, ...options } = {}) {
 }
 
 export const signingStore = {
-  list: () => request(collection + '?select=id,slot,name,strokes&order=slot.asc'),
-  async sign(slot, name, strokes) {
-    const [entry] = await request(collection + '?select=id,slot,name,strokes', {
-      method: 'POST', body: JSON.stringify({ slot, name, strokes }),
+  async list() {
+    const marks = [];
+    let after = '';
+    for (;;) {
+      const page = await request(collection + fields + '&order=id.asc&limit=300' + after);
+      marks.push(...page);
+      if (page.length < 300) return marks;
+      after = '&id=gt.' + encodeURIComponent(page.at(-1).id);
+    }
+  },
+  async sign(name, strokes) {
+    const [entry] = await request(collection + fields, {
+      method: 'POST', body: JSON.stringify({ name, strokes }),
       headers: { Prefer: 'return=representation' },
     });
     return entry;
   },
-  async login(email, password) {
+  async login(username, password) {
+    if (username.trim().toLowerCase() !== 'swaritlol') throw new Error('Owner access required.');
     const result = await request('/auth/v1/token?grant_type=password', {
-      method: 'POST', body: JSON.stringify({ email, password }),
+      method: 'POST', body: JSON.stringify({ email: ownerEmail, password }),
     });
     if (result.user?.app_metadata?.portfolio_wall_admin !== true || !result.access_token) {
       throw new Error('Owner access required.');

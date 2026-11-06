@@ -1,0 +1,4 @@
+project_id = "portfolio"
+
+[functions.portfolio-owner-setup]
+verify_jwt = false

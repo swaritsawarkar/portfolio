@@ -21,7 +21,7 @@ Use `?mode=inverted` to open on the white-S-on-black variant first.
 
 Production builds use the portfolio project in SWARIT.org. The connected Supabase GitHub integration applies the migration in `supabase/migrations` on pushes to `main`. To use a separate backend, set its URL and **publishable** key using `.env.example`. For local development, copy that file to `.env.local` and fill in the values.
 
-In Supabase Auth, create the owner account with an email and password. In the SQL editor, grant that account moderation access using its user ID:
+For the separate `/admin/` page, create the owner in **Supabase → Authentication → Users** with the portfolio contact email and a password entered privately. A different owner email can be set using `VITE_SIGNING_OWNER_EMAIL`. In the SQL editor, grant that account moderation access using its user ID:
 
 ```sql
 update auth.users
@@ -30,7 +30,7 @@ set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
 where id = '<owner user ID>'::uuid;
 ```
 
-Choose **Moderate** on the wall, sign in, then delete a signature from its square. This frees the square. Visitors draw directly on the wall and add their name in the toolbar. More wall space adds rows to the same grid. The database validates the ink budget and accepts only one signature per square.
+Visit `/admin/` and sign in as `swaritlol` with that password. The owner can review and remove individual signatures. Visitors draw directly on the shared canvas and add their name in the toolbar. **More wall space** extends the same canvas. The database validates the ink budget and rejects overlapping signatures.
 
 ## Logo artwork
 

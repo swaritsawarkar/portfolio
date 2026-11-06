@@ -1,119 +1,76 @@
 .signing-wall {
-  --wall-surface: color-mix(in srgb, var(--paper) 4%, var(--ink));
-  --wall-line: color-mix(in srgb, var(--paper) 20%, var(--ink));
+  --wall-line: color-mix(in srgb, var(--paper) 18%, var(--ink));
+  --wall-surface: color-mix(in srgb, var(--paper) 3%, var(--ink));
 }
-.wall-legend, .wall-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  min-height: 54px;
-}
-.wall-legend, .wall-slot-number, .wall-count, .wall-draft-slot {
-  font: .74rem/1.3 Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: .08em;
-}
-.wall-legend { color: var(--muted); }
-.wall-grid {
+.wall-controls {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  padding: 1px;
-  background: var(--wall-line);
+  grid-template-columns: minmax(160px, 1fr) minmax(120px, .7fr) auto;
+  align-items: end;
+  gap: 12px 22px;
+  margin-bottom: 14px;
 }
-.wall-tile {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 5px;
-  align-items: center;
-  text-align: left;
-  min-width: 0;
-  aspect-ratio: 1.45;
-  padding: clamp(8px, 1.25vw, 18px);
-  border: 0;
-  background: var(--wall-surface);
-  color: var(--paper);
-  font: inherit;
-  transition: background 160ms;
-}
-button.wall-tile { cursor: pointer; touch-action: manipulation; }
-.wall-tile:disabled { cursor: default; color: var(--muted); }
-button.wall-tile:not(:disabled):hover { background: color-mix(in srgb, var(--paper) 9%, var(--ink)); }
-.wall-tile.is-signed { background: var(--ink); }
-.wall-tile.is-editing { box-shadow: inset 0 0 0 2px var(--accent); scroll-margin-top: 165px; }
-.wall-tile:focus-visible { position: relative; outline-offset: -3px !important; }
-.wall-slot-number { color: var(--muted); }
-.wall-plus { justify-self: center; color: var(--accent); font-weight: 400; font-size: clamp(1.2rem, 2.6vw, 2.3rem); line-height: 1; }
-.wall-tile:disabled .wall-plus { opacity: .32; }
-.wall-signer { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: clamp(.75rem, 1vw, .95rem); }
-.wall-tile svg { width: 100%; height: 100%; min-height: 0; }
-.wall-tile svg polyline, .wall-paper polyline { fill: none; stroke: currentColor; stroke-width: 2.7; stroke-linejoin: round; stroke-linecap: round; }
-.wall-tile svg circle, .wall-paper circle { fill: currentColor; }
-.wall-foot { padding-top: 9px; font-size: .85rem; }
-.wall-status { flex: 1; min-width: 14ch; color: var(--muted); }
-.wall-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.wall-foot button, .wall-sign-form button, .wall-owner-form button, .wall-tile .wall-remove {
-  min-height: 44px;
-  min-width: 44px;
-  border: 0;
-  border-radius: 3px;
-  padding: 6px 10px;
-  background: color-mix(in srgb, var(--paper) 8%, var(--ink));
-  color: var(--paper);
-  font: inherit;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.signing-wall button:disabled { opacity: .45; cursor: default; }
-.wall-sign-form {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  padding: 10px clamp(8px, 2vw, 20px);
-  background: var(--ink);
-  box-shadow: 0 1px var(--wall-line);
-}
-.wall-draft-top { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(110px, .65fr); align-items: center; gap: 10px 22px; }
-.wall-draft-slot { color: var(--accent); }
-.wall-sign-form label, .wall-owner-form label { display: grid; gap: 3px; color: var(--muted); font-size: .8rem; margin-bottom: 8px; }
-.wall-sign-form input, .wall-owner-form input {
+.wall-controls label, .wall-admin label { display: grid; gap: 3px; color: var(--muted); font-size: .86rem; }
+.wall-controls input, .wall-admin input {
   width: 100%;
-  padding: 7px 9px;
-  border: 1px solid var(--rule);
+  padding: 8px 10px;
+  border: 1px solid var(--wall-line);
   border-radius: 3px;
-  background: color-mix(in srgb, var(--paper) 5%, var(--ink));
+  background: var(--wall-surface);
   color: var(--paper);
   font: inherit;
   font-size: 1rem;
 }
-.wall-paper {
-  height: 100%;
-  width: 100%;
-  min-height: 0;
-  overflow: hidden;
+.wall-ink { display: flex; align-items: center; gap: 8px; align-self: center; font: .76rem/1.3 Consolas, monospace; }
+.wall-ink progress { flex: 1; min-width: 0; height: 10px; accent-color: var(--accent); }
+.wall-tools, .wall-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.wall-foot { justify-content: space-between; padding-top: 12px; gap: 12px 20px; font-size: .86rem; }
+.wall-status { flex: 1; min-width: 24ch; color: var(--muted); }
+.wall-count { font: .74rem/1.3 Consolas, monospace; }
+.signing-wall button, .wall-admin button {
+  min-height: 44px;
+  min-width: 42px;
+  border: 0;
+  border-radius: 3px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--paper) 9%, var(--ink));
   color: var(--paper);
-  background: radial-gradient(circle, color-mix(in srgb, var(--paper) 14%, var(--ink)) 1px, transparent 1px) 0 0 / 12px 12px;
+  font: inherit;
+  font-size: .86rem;
+  cursor: pointer;
+  touch-action: manipulation;
 }
-.wall-paper svg { display: block; width: 100%; height: 100%; }
-.wall-paper { touch-action: none; user-select: none; cursor: crosshair; }
-.wall-ink { display: flex; align-items: center; gap: 8px; font: .73rem/1.3 Consolas, monospace; }
-.wall-ink progress { flex: 1; min-width: 0; height: 9px; accent-color: var(--accent); }
-.signing-wall .wall-primary { background: var(--paper); color: var(--ink); font-weight: 600; }
-.wall-tools .wall-primary { margin-left: auto; }
-.wall-tile .wall-remove { position: absolute; top: 3px; right: 3px; font-size: .75rem; }
-.wall-owner-form { max-width: 400px; margin: 18px 0; }
-.wall-draft-status, .wall-owner-status { color: var(--muted); font-size: .84rem; margin-top: 8px !important; }
-.wall-draft-status:empty, .wall-owner-status:empty { display: none; }
+.signing-wall button:disabled, .wall-admin button:disabled { opacity: .43; cursor: default; }
+.signing-wall .wall-primary, .wall-admin .wall-primary { background: var(--paper); color: var(--ink); font-weight: 600; }
+.wall-viewport {
+  height: clamp(330px, 67svh, 740px);
+  overflow: auto;
+  border: 1px solid var(--wall-line);
+  background: var(--wall-surface);
+}
+.wall-board {
+  display: block;
+  width: 100%;
+  min-width: 820px;
+  height: auto;
+  min-height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+.wall-board.is-panning { touch-action: pan-x pan-y; cursor: grab; }
+.wall-board path, .wall-admin svg path { fill: none; stroke: currentColor; stroke-width: 7.5; stroke-linejoin: round; stroke-linecap: round; }
+.wall-board circle, .wall-admin svg circle { fill: currentColor; }
+.wall-draft { color: var(--accent); }
+.wall-name { color: currentColor; font: 500 25px/1.35 'DM Sans', sans-serif; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.wall-board g { pointer-events: none; }
 
-@media (max-width: 900px) { .wall-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 580px) {
-  .wall-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .wall-status { flex-basis: 100%; }
-  .wall-draft-top { grid-template-columns: 1fr 1fr; gap: 4px 9px; }
-  .wall-draft-top label { grid-column: 1 / -1; grid-row: 2; }
-  .wall-tools { font-size: .82rem; }
-  .wall-tools button { padding-inline: 8px; }
+@media (max-width: 980px) {
+  .wall-controls { grid-template-columns: 1fr 1fr; }
+  .wall-tools { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) {
+  .wall-controls { grid-template-columns: minmax(0, 1fr) minmax(90px, .65fr); gap: 9px; }
+  .wall-tools { gap: 5px; }
+  .signing-wall button { padding-inline: 8px; font-size: .8rem; }
+  .wall-viewport { height: 58svh; }
 }

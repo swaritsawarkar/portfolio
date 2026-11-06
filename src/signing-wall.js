@@ -1,114 +1,90 @@
-import { extend, measure, paper, paperPoint, renderInk, slots } from './signing-ink.js';
+import { extend, measure, overlaps, paper, paperPoint, renderInk, renderMark, wallBounds } from './signing-ink.js';
 import { signingConfigured, signingStore } from './signing-store.js';
 import './signing-wall.css';
 
-const rowBatch = 12;
-const firstSquares = 24;
-const svgMarkup = '<svg viewBox="0 0 320 180" preserveAspectRatio="none" aria-hidden="true"></svg>';
-const slotLabel = (slot) => String(slot + 1).padStart(3, '0');
-
 export const signingWall = `
   <div class="signing-wall" data-part="frame" data-build-static>
-    <div class="wall-legend"><span>Guestbook</span><span class="wall-count">— / ${slots} signed</span></div>
-    <form class="wall-sign-form" hidden>
-      <div class="wall-draft-top">
-        <span class="wall-draft-slot"></span>
-        <label>Your name <input name="signatureName" required maxlength="40" autocomplete="name" placeholder="Name shown on the wall"></label>
-        <div class="wall-ink"><progress max="${paper.ink}" value="${paper.ink}" aria-label="Ink remaining"></progress><span class="wall-ink-count">100% ink</span></div>
-      </div>
+    <form class="wall-controls">
+      <label>Your name<input name="signatureName" required maxlength="40" autocomplete="name" placeholder="Shown below your signature"></label>
+      <div class="wall-ink"><progress max="${paper.ink}" value="${paper.ink}" aria-label="Ink remaining"></progress><span class="wall-ink-count">100% ink</span></div>
       <div class="wall-tools">
+        <button type="button" data-wall-action="pan" aria-pressed="false">Pan the wall</button>
         <button type="button" data-wall-action="undo">Undo</button>
         <button type="button" data-wall-action="clear">Clear</button>
-        <button type="button" data-wall-action="cancel">Cancel</button>
         <button type="submit" class="wall-primary">Sign the wall</button>
       </div>
-      <p class="wall-draft-status" role="status"></p>
     </form>
-    <div class="wall-grid" aria-label="Signature wall"></div>
+    <div class="wall-viewport" tabindex="0" aria-label="Scrollable signature wall">
+      <svg class="wall-board" aria-label="Draw a signature anywhere on the wall" xmlns="http://www.w3.org/2000/svg">
+        <g class="wall-saved"></g><g class="wall-draft"></g>
+      </svg>
+    </div>
     <div class="wall-foot">
       <p class="wall-status" role="status"></p>
-      <button type="button" data-wall-action="more">More wall space ↓</button>
-      <button type="button" data-wall-action="owner">Moderate</button>
+      <span class="wall-count"></span>
+      <button type="button" data-wall-action="extend">More wall space ↓</button>
       <button type="button" data-wall-action="refresh" hidden>Retry</button>
     </div>
-    <form class="wall-owner-form" hidden>
-      <label>Owner email<input name="email" type="email" required autocomplete="username"></label>
-      <label>Password<input name="password" type="password" required autocomplete="current-password"></label>
-      <button type="submit" class="wall-primary">Sign in</button>
-      <p class="wall-owner-status" role="status"></p>
-    </form>
   </div>`;
 
 export function mountSigningWall(section) {
   const find = (selector) => section.querySelector(selector);
-  const action = (name) => find('[data-wall-action="' + name + '"]');
-  const grid = find('.wall-grid');
-  const form = find('.wall-sign-form');
-  const ownerForm = find('.wall-owner-form');
-  const notice = find('.wall-status');
-  const feedback = find('.wall-draft-status');
-  const submit = form.querySelector('[type="submit"]');
+  const button = (name) => find('[data-wall-action="' + name + '"]');
+  const viewport = find('.wall-viewport');
+  const board = find('.wall-board');
+  const saved = find('.wall-saved');
+  const draft = find('.wall-draft');
+  const form = find('.wall-controls');
   const nameInput = form.elements.signatureName;
-  const entries = new Map();
-  let shown = firstSquares;
-  let available = false;
-  let requestId = 0;
-  let token;
-  let slot;
-  let confirmed;
-  let busy = false;
-  let nearWall = false;
+  const notice = find('.wall-status');
+  const submit = form.querySelector('[type="submit"]');
+  let marks = [];
   let strokes = [];
+  let height = 1200;
+  let ready = false;
+  let busy = false;
+  let pan = false;
+  let near = false;
+  let requestId = 0;
   let pointer;
-  let drawingBox;
+  let blocked = false;
 
-  function showThrough(index) {
-    shown = Math.max(shown, Math.ceil((index + 1) / rowBatch) * rowBatch);
+  function setHeight(next) {
+    height = Math.min(paper.height, Math.max(height, next));
+    board.setAttribute('viewBox', '0 0 ' + paper.width + ' ' + height);
+    button('extend').hidden = height === paper.height;
   }
 
-  function paintBoard() {
-    const focus = document.activeElement?.closest('[data-slot]')?.dataset.slot;
-    const tiles = Array.from({ length: shown }, (_, index) => {
-      const entry = entries.get(index);
-      const editing = !entry && slot === index;
-      const tile = document.createElement(entry || editing ? 'div' : 'button');
-      tile.className = 'wall-tile';
-      tile.dataset.slot = index;
-      if (!entry && !editing) {
-        tile.type = 'button';
-        tile.disabled = !available || busy;
-        tile.setAttribute('aria-label', 'Sign square ' + slotLabel(index));
-      }
-      tile.innerHTML = '<span class="wall-slot-number"></span>' +
-        (entry ? svgMarkup : editing ? '<div class="wall-paper" aria-label="Draw in this square">' + svgMarkup + '</div>'
-          : '<span class="wall-plus" aria-hidden="true">+</span>') + '<span class="wall-signer"></span>';
-      tile.querySelector('.wall-slot-number').textContent = slotLabel(index);
-      tile.querySelector('.wall-signer').textContent = entry?.name ?? (editing ? 'Draw here' : '');
-      if (entry) {
-        tile.classList.add('is-signed');
-        renderInk(tile.querySelector('svg'), entry.strokes);
-        if (token) {
-          const remove = document.createElement('button');
-          remove.type = 'button';
-          remove.className = 'wall-remove';
-          remove.dataset.removeId = entry.id;
-          remove.textContent = confirmed === entry.id ? 'Confirm delete' : 'Delete';
-          remove.setAttribute('aria-label', remove.textContent + ' signature by ' + entry.name);
-          remove.disabled = busy;
-          tile.append(remove);
-        }
-      } else if (editing) {
-        tile.classList.add('is-editing');
-        renderInk(tile.querySelector('svg'), strokes);
-      }
-      return tile;
+  function paintSaved() {
+    const groups = marks.map((entry) => {
+      const group = document.createElementNS(board.namespaceURI, 'g');
+      group.dataset.mark = entry.id;
+      renderMark(group, entry);
+      return group;
     });
-    grid.replaceChildren(...tiles);
-    if (focus !== undefined) grid.querySelector('button[data-slot="' + focus + '"]')?.focus({ preventScroll: true });
-    find('.wall-count').textContent = (available || entries.size ? entries.size : '—') + ' / ' + slots + ' signed';
-    action('more').hidden = shown >= slots;
-    action('owner').disabled = !signingConfigured;
-    action('owner').textContent = token ? 'Sign out' : ownerForm.hidden ? 'Moderate' : 'Close moderation';
+    saved.replaceChildren(...groups);
+    find('.wall-count').textContent = marks.length + (marks.length === 1 ? ' signature' : ' signatures');
+    setHeight(Math.max(1200, ...marks.map(({bounds}) => bounds[3] + 150)));
+  }
+
+  function collides() {
+    if (!strokes.length) return false;
+    const bounds = wallBounds(strokes, nameInput.value.trim());
+    return marks.some((mark) => overlaps(bounds, mark.bounds));
+  }
+
+  function paintDraft() {
+    if (strokes.length) {
+      const name = nameInput.value.trim();
+      if (name) renderMark(draft, { name, strokes, bounds: wallBounds(strokes, name) });
+      else renderInk(draft, strokes);
+    } else draft.replaceChildren();
+    const remaining = Math.max(0, paper.ink - measure(strokes));
+    find('progress').value = remaining;
+    find('.wall-ink-count').textContent = remaining < 2 ? 'Out of ink' : Math.ceil(remaining / paper.ink * 100) + '% ink';
+    submit.disabled = busy || !ready || !strokes.length || collides();
+    button('undo').disabled = busy || !strokes.length;
+    button('clear').disabled = busy || !strokes.length;
   }
 
   async function refresh() {
@@ -117,202 +93,139 @@ export function mountSigningWall(section) {
     try {
       const rows = await signingStore.list();
       if (current !== requestId) return false;
-      entries.clear();
-      for (const entry of rows) {
-        entries.set(entry.slot, entry);
-        showThrough(entry.slot);
-      }
-      available = true;
-      notice.textContent = entries.size === slots ? 'Every square is signed.' : 'Pick a free square to sign.';
-      action('refresh').hidden = true;
+      marks = rows;
+      ready = true;
+      button('refresh').hidden = true;
+      if (!strokes.length) notice.textContent = 'Draw anywhere there’s room. Your name goes below your mark.';
+      paintSaved();
     } catch {
       if (current !== requestId) return false;
-      available = false;
+      ready = false;
       notice.textContent = 'The wall couldn’t load. Try again.';
-      action('refresh').hidden = false;
+      button('refresh').hidden = false;
     }
-    paintBoard();
-    return available;
+    paintDraft();
+    return ready;
   }
 
-  function paintInk() {
-    const remaining = Math.max(0, paper.ink - measure(strokes));
-    const canvas = grid.querySelector('.is-editing svg');
-    if (canvas) renderInk(canvas, strokes);
-    find('.wall-ink progress').value = remaining;
-    find('.wall-ink-count').textContent = remaining < 2 ? 'Out of ink' : Math.ceil(remaining / paper.ink * 100) + '% ink';
-    submit.disabled = busy || !strokes.length || slot === undefined;
-    action('undo').disabled = busy || !strokes.length;
-    action('clear').disabled = busy || !strokes.length;
-    action('cancel').disabled = busy;
-  }
+  const point = (event, bounds) => paperPoint(event.clientX, event.clientY, bounds, height);
+  const pointsUsed = () => strokes.reduce((count, stroke) => count + stroke.length, 0);
 
-  function endDraft() {
-    slot = pointer = undefined;
-    strokes = [];
-    form.reset();
-    form.hidden = true;
-    feedback.textContent = '';
-  }
-
-  function choose(index) {
-    if (busy || !available || entries.has(index)) return;
-    slot = index;
-    showThrough(index);
-    form.hidden = false;
-    find('.wall-draft-slot').textContent = 'Square ' + slotLabel(index);
-    feedback.textContent = '';
-    paintBoard();
-    paintInk();
-    grid.querySelector('.is-editing').scrollIntoView({ block: 'nearest', behavior: 'instant' });
-  }
-
-  const pointsUsed = () => strokes.reduce((n, stroke) => n + stroke.length, 0);
-  grid.addEventListener('pointerdown', (event) => {
-    const pad = event.target.closest('.is-editing .wall-paper');
-    if (!pad || busy || pointer !== undefined || event.button !== 0 || strokes.length >= paper.strokes ||
-        measure(strokes) + paper.lift > paper.ink || pointsUsed() >= paper.points) return;
+  board.addEventListener('pointerdown', (event) => {
+    if (!ready || pan || busy || pointer !== undefined || event.button !== 0 ||
+        strokes.length >= paper.strokes || measure(strokes) + paper.lift > paper.ink || pointsUsed() >= paper.points) return;
     if (document.activeElement === nameInput) nameInput.blur();
-    drawingBox = pad.querySelector('svg').getBoundingClientRect();
+    strokes.push([point(event, board.getBoundingClientRect())]);
+    if (collides()) {
+      strokes.pop();
+      notice.textContent = 'That area is taken. Try a clear spot.';
+      return;
+    }
+    event.preventDefault();
     pointer = event.pointerId;
-    pad.setPointerCapture(pointer);
-    strokes.push([paperPoint(event.clientX, event.clientY, drawingBox)]);
-    paintInk();
+    blocked = false;
+    board.setPointerCapture(pointer);
+    notice.textContent = 'Your ink stays on this wall after you sign.';
+    paintDraft();
   });
-  grid.addEventListener('pointermove', (event) => {
-    if (event.pointerId !== pointer || pointsUsed() >= paper.points) return;
-    if (extend(strokes.at(-1), paperPoint(event.clientX, event.clientY, drawingBox), paper.ink - measure(strokes))) paintInk();
+
+  board.addEventListener('pointermove', (event) => {
+    if (event.pointerId !== pointer || blocked || pointsUsed() >= paper.points) return;
+    const samples = event.getCoalescedEvents?.() ?? [];
+    const bounds = board.getBoundingClientRect();
+    const stroke = strokes.at(-1);
+    let changed = false;
+    for (const sample of samples.length ? samples : [event]) {
+      if (pointsUsed() >= paper.points) break;
+      if (!extend(stroke, point(sample, bounds), paper.ink - measure(strokes))) continue;
+      if (collides()) {
+        stroke.pop();
+        blocked = true;
+        notice.textContent = 'You reached another signature. Lift your pen and leave some space.';
+        break;
+      }
+      changed = true;
+    }
+    if (changed) paintDraft();
   });
   for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    grid.addEventListener(event, (e) => { if (e.pointerId === pointer) pointer = undefined; });
+    board.addEventListener(event, (e) => { if (e.pointerId === pointer) pointer = undefined; });
   }
+
+  nameInput.addEventListener('input', () => {
+    if (collides()) notice.textContent = 'Your name needs a little more room. Clear some space or shorten it.';
+    else if (strokes.length) notice.textContent = 'Your name will appear below your mark.';
+    paintDraft();
+  });
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (busy || slot === undefined || !strokes.length) return;
     const name = nameInput.value.trim();
+    if (!ready || busy || !strokes.length) return;
     if (!name) {
-      feedback.textContent = 'Enter your name before signing.';
+      notice.textContent = 'Enter your name before signing.';
       nameInput.focus();
       return;
     }
-    busy = true;
-    paintInk();
-    feedback.textContent = 'Saving your signature…';
-    try {
-      const entry = await signingStore.sign(slot, name, strokes);
-      ++requestId;
-      entries.set(entry.slot, entry);
-      endDraft();
-      notice.textContent = 'Your signature is on the wall.';
-      grid.querySelector('[data-slot="' + entry.slot + '"]')?.scrollIntoView({ block: 'nearest' });
-    } catch (error) {
-      if (error.code !== '23505') {
-        feedback.textContent = 'Couldn’t save. Your draft is still here.';
-      } else if (await refresh()) {
-        const next = Array.from({ length: slots }, (_, index) => index).find((index) => !entries.has(index));
-        busy = false;
-        if (next === undefined) {
-          slot = undefined;
-          feedback.textContent = 'The last square was taken. The wall is full.';
-        } else {
-          choose(next);
-          feedback.textContent = 'That square was taken. Your draft moved to a free square. Save again to confirm.';
-        }
-      } else feedback.textContent = 'That square was taken. Try again when the wall reconnects.';
-    } finally {
-      busy = false;
-      paintBoard();
-      paintInk();
-    }
-  });
-
-  ownerForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (busy) return;
-    busy = true;
-    try {
-      token = await signingStore.login(ownerForm.elements.email.value, ownerForm.elements.password.value);
-      ownerForm.hidden = true;
-      notice.textContent = 'Moderation on. Choose a signature to delete.';
-    } catch {
-      find('.wall-owner-status').textContent = 'Couldn’t sign in with that owner account.';
-    } finally {
-      ownerForm.elements.password.value = '';
-      busy = false;
-      paintBoard();
-      paintInk();
-    }
-  });
-
-  async function removeSignature(id) {
-    if (!token || busy) return;
-    if (confirmed !== id) {
-      confirmed = id;
-      paintBoard();
-      grid.querySelector('[data-remove-id="' + id + '"]')?.focus({ preventScroll: true });
+    if (collides()) {
+      notice.textContent = 'Your signature needs a clear spot.';
       return;
     }
     busy = true;
-    paintBoard();
+    pointer = undefined;
+    paintDraft();
+    notice.textContent = 'Saving your signature…';
     try {
-      await signingStore.remove(id, token);
+      const entry = await signingStore.sign(name, strokes);
       ++requestId;
-      for (const [cell, entry] of entries) if (entry.id === id) entries.delete(cell);
-      notice.textContent = 'Signature deleted. Its square is available.';
-    } catch {
-      notice.textContent = 'Couldn’t delete. Refresh the wall or sign in again.';
+      marks.push(entry);
+      strokes = [];
+      form.reset();
+      paintSaved();
+      notice.textContent = 'Your signature is on the wall.';
+    } catch (error) {
+      if (error.code === '23P01') {
+        await refresh();
+        notice.textContent = 'Someone signed there first. Clear your draft and find another spot.';
+      } else notice.textContent = 'Couldn’t save. Your draft is still here.';
     } finally {
-      confirmed = undefined;
       busy = false;
-      paintBoard();
-    }
-  }
-
-  section.addEventListener('click', (event) => {
-    const target = event.target.closest('button');
-    if (!target) return;
-    if (target.dataset.slot !== undefined) choose(Number(target.dataset.slot));
-    if (target.dataset.removeId) void removeSignature(target.dataset.removeId);
-    const command = target.dataset.wallAction;
-    if (command === 'more') {
-      const next = shown;
-      shown = Math.min(slots, shown + rowBatch);
-      paintBoard();
-      grid.querySelector('[data-slot="' + next + '"]')?.scrollIntoView({ block: 'nearest' });
-    } else if (command === 'refresh') void refresh();
-    else if (command === 'undo' || command === 'clear') {
-      if (command === 'undo') strokes.pop();
-      else strokes = [];
-      pointer = undefined;
-      paintInk();
-    } else if (command === 'cancel') {
-      const previous = slot;
-      endDraft();
-      paintBoard();
-      grid.querySelector('button[data-slot="' + previous + '"]')?.focus({ preventScroll: true });
-    } else if (command === 'owner') {
-      if (token) {
-        token = confirmed = undefined;
-        notice.textContent = 'Signed out of moderation.';
-      } else {
-        ownerForm.hidden = !ownerForm.hidden;
-        find('.wall-owner-status').textContent = '';
-        if (!ownerForm.hidden) ownerForm.elements.email.focus();
-      }
-      paintBoard();
+      paintDraft();
     }
   });
 
-  paintBoard();
+  section.addEventListener('click', (event) => {
+    const action = event.target.closest('[data-wall-action]')?.dataset.wallAction;
+    if (action === 'undo' || action === 'clear') {
+      if (action === 'undo') strokes.pop();
+      else strokes = [];
+      pointer = undefined;
+      notice.textContent = 'Draw anywhere there’s room.';
+      paintDraft();
+    } else if (action === 'pan') {
+      pan = !pan;
+      pointer = undefined;
+      board.classList.toggle('is-panning', pan);
+      button('pan').setAttribute('aria-pressed', String(pan));
+      button('pan').textContent = pan ? 'Switch to draw' : 'Pan the wall';
+      notice.textContent = pan ? 'Pan to a clear spot, then switch to draw.' : 'Draw anywhere there’s room.';
+    } else if (action === 'extend') {
+      const previous = height;
+      setHeight(height + 700);
+      viewport.scrollTop = previous / paper.width * board.getBoundingClientRect().width - 70;
+    } else if (action === 'refresh') void refresh();
+  });
+
+  setHeight(height);
+  paintDraft();
   notice.textContent = signingConfigured ? 'Loading the wall…' : 'The shared wall is awaiting setup.';
   if (signingConfigured) {
     const root = document.documentElement;
     const loadIfReady = () => {
-      if (nearWall && !root.classList.contains('is-building') && !busy && slot === undefined) void refresh();
+      if (near && !root.classList.contains('is-building') && !busy && !strokes.length) void refresh();
     };
     new IntersectionObserver(([entry]) => {
-      nearWall = entry.isIntersecting;
+      near = entry.isIntersecting;
       loadIfReady();
     }).observe(section);
     new MutationObserver(loadIfReady).observe(root, { attributes: true, attributeFilter: ['class'] });
