@@ -1,6 +1,7 @@
 import { createTyping } from './build-typing.js';
 import { createSignature } from './build-signature.js';
 import { prepareRules, scheduleRules } from './build-rules.js';
+import { track } from './portfolio-analytics.js';
 
 const clamp = (n, low = 0, high = 1) => Math.max(low, Math.min(high, n));
 const mix = (a, b, t) => a + (b - a) * t;
@@ -606,6 +607,7 @@ export function createBuildSequence(portfolio, preference) {
     signal.addEventListener('abort', () => clearTimeout(hintTimer), { once: true });
     function speedUp() {
       if (!constructing || signal.aborted) return;
+      track('experience', 'boosted');
       clock.boostUntil = performance.now() + 2000;
       boost.getAnimations().forEach((animation) => animation.cancel());
       boost.animate([
@@ -633,11 +635,15 @@ export function createBuildSequence(portfolio, preference) {
         finish(true, true);
         return;
       }
+      track('experience', 'build-skipped');
       construction.abort();
       beginEnding();
     }, { signal });
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') finish(true, true);
+      if (event.key === 'Escape') {
+        if (constructing) track('experience', 'build-skipped');
+        finish(true, true);
+      }
     }, { signal });
     document.addEventListener('visibilitychange', () => { if (document.hidden) finish(true); }, { signal });
     preference.addEventListener('change', () => { if (preference.matches) finish(true); }, { signal });
@@ -645,7 +651,10 @@ export function createBuildSequence(portfolio, preference) {
     try {
       await assemble(scenes, actors, rail, home(), buildSignal, clock, typing, rules);
       if (signal.aborted) return;
-      if (constructing) beginEnding();
+      if (constructing) {
+        track('experience', 'build-completed');
+        beginEnding();
+      }
       const signature = await drawSignature(layer, actors, signal);
       if (signal.aborted) return;
       const from = scrollY;

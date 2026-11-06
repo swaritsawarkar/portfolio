@@ -1,5 +1,6 @@
 import { extend, measure, overlaps, paper, paperPoint, renderInk, renderMark, wallBounds } from './signing-ink.js';
 import { signingConfigured, signingStore } from './signing-store.js';
+import { track } from './portfolio-analytics.js';
 import './signing-wall.css';
 
 const visitorKey = 'portfolio.wall.visitor.v1';
@@ -165,6 +166,7 @@ export function mountSigningWall(section) {
     pointer = event.pointerId;
     blocked = false;
     board.setPointerCapture(pointer);
+    track('wall', 'started');
     notice.textContent = 'Your ink stays on this wall after you sign.';
     paintDraft();
   });
@@ -217,6 +219,7 @@ export function mountSigningWall(section) {
     notice.textContent = 'Saving your signature…';
     try {
       const entry = await signingStore.sign(name, strokes, visitor.id);
+      track('signed', entry.id);
       ++requestId;
       marks.push(entry);
       lockSigning();

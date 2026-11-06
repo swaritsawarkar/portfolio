@@ -22,15 +22,27 @@ async function request(path, { token, ...options } = {}) {
       ...options.headers,
     },
   });
-  const body = await response.json();
+  const body = await response.json().catch(() => null);
   if (!response.ok) {
     const error = new Error('Could not reach the signing wall.');
-    error.code = body.code;
+    error.code = body?.code;
     error.status = response.status;
     throw error;
   }
   return body;
 }
+
+export const portfolioStatsStore = {
+  visit: (visit) => request('/rest/v1/portfolio_visits', {
+    method: 'POST', keepalive: true, body: JSON.stringify(visit),
+  }),
+  activity: (activity) => request('/rest/v1/portfolio_activity', {
+    method: 'POST', keepalive: true, body: JSON.stringify(activity),
+  }),
+  summary: (days, token) => request('/rest/v1/rpc/portfolio_stats', {
+    method: 'POST', token, body: JSON.stringify({ days }),
+  }),
+};
 
 export const signingStore = {
   async list() {

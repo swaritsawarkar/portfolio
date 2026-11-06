@@ -5,6 +5,7 @@ import { vertexSource, fragmentSource } from './liquid-shader.js';
 import { mountPortfolio } from './portfolio.js';
 import { createBuildSequence } from './build-sequence.js';
 import { mountPortfolioVelocity } from './portfolio-velocity.js';
+import { mountPortfolioAnalytics, track as trackActivity } from './portfolio-analytics.js';
 
 const track = document.querySelector('.intro-track');
 const outro = document.querySelector('.outro-track');
@@ -23,6 +24,7 @@ let stagePalette = entryPalette;
 const entryHash = location.hash;
 if (entryHash) history.replaceState(history.state, '', location.pathname + location.search);
 const openLinkedProject = mountPortfolio(portfolio);
+mountPortfolioAnalytics(portfolio);
 mountPortfolioVelocity(portfolio, reducedMotion);
 const build = createBuildSequence(portfolio, reducedMotion);
 
@@ -79,6 +81,7 @@ function setRevealed(value) {
   themeColor.content = value ? theme.ink : stagePalette.paper;
   if (value && !buildStarted) {
     buildStarted = true;
+    trackActivity('experience', 'entered');
     if (!openLinkedProject(entryHash)) void build.start();
   } else if (!value) build.stop();
 }
@@ -118,6 +121,7 @@ function completeCover() {
   // controller, so neither the page nor the cursor sequence needs to restart.
   entryPalette = stagePalette;
   applyTheme(stagePalette.light ? light : dark);
+  trackActivity('experience', theme.light ? 'light' : 'dark');
   scrollTo({ top: track.offsetHeight, behavior: 'instant' });
   ending = false;
   document.body.classList.remove('is-outro');

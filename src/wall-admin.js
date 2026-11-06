@@ -1,5 +1,6 @@
 import { renderInk } from './signing-ink.js';
-import { signingConfigured, signingStore } from './signing-store.js';
+import { portfolioStatsStore, signingConfigured, signingStore } from './signing-store.js';
+import { renderStats } from './wall-stats.js';
 import './portfolio.css';
 import './signing-wall.css';
 import './wall-admin.css';
@@ -9,9 +10,28 @@ const form = root.querySelector('form');
 const actions = root.querySelector('.admin-actions');
 const status = root.querySelector('.admin-status');
 const list = root.querySelector('.admin-signatures');
+const heading = root.querySelector('h1');
+const nav = root.querySelector('.admin-nav');
+const stats = root.querySelector('.admin-stats');
+const statsContent = root.querySelector('.stats-content');
+const range = stats.querySelector('select');
 let token;
 let confirmed;
 let revision = 0;
+let view;
+
+function showView() {
+  view = location.pathname.replace(/\/+$/, '') === '/admin/stats' ||
+    new URLSearchParams(location.search).get('view') === 'stats' ? 'stats' : 'wall';
+  heading.textContent = view === 'stats' ? 'Portfolio stats.' : 'Wall admin.';
+  document.title = view === 'stats' ? 'Portfolio stats · Admin' : 'Signing wall · Admin';
+  list.hidden = !token || view !== 'wall';
+  stats.hidden = !token || view !== 'stats';
+  for (const link of nav.querySelectorAll('[data-admin-view]')) {
+    if (link.dataset.adminView === view) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+}
 
 function setSession(value) {
   token = value;
@@ -19,11 +39,34 @@ function setSession(value) {
   revision++;
   form.hidden = Boolean(token);
   actions.hidden = !token;
-  if (!token) list.replaceChildren();
+  nav.hidden = !token;
+  if (!token) {
+    list.replaceChildren();
+    statsContent.replaceChildren();
+  }
+  showView();
 }
 
 async function refresh() {
+  if (!token) return;
   const current = ++revision;
+  if (view === 'stats') {
+    status.textContent = 'Loading visitor stats…';
+    try {
+      const data = await portfolioStatsStore.summary(Number(range.value), token);
+      if (!token || current !== revision) return;
+      if (!data) throw Object.assign(new Error('Owner access required.'), { status: 403 });
+      renderStats(statsContent, data);
+      status.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch (error) {
+      if (current !== revision) return;
+      if (error.status === 401 || error.status === 403) {
+        setSession(undefined);
+        status.textContent = 'Sign in again to view visitor stats.';
+      } else status.textContent = 'Couldn’t load visitor stats. Try Refresh.';
+    }
+    return;
+  }
   status.textContent = 'Loading signatures…';
   try {
     const rows = await signingStore.list();
@@ -101,6 +144,26 @@ root.addEventListener('click', async (event) => {
   }
 });
 
+nav.addEventListener('click', (event) => {
+  const link = event.target.closest('[data-admin-view]');
+  if (!link || !token || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  if (view === link.dataset.adminView) return;
+  history.pushState(null, '', link.href);
+  showView();
+  window.scrollTo(0, 0);
+  void refresh();
+});
+window.addEventListener('popstate', () => {
+  showView();
+  if (token) void refresh();
+});
+range.addEventListener('change', () => { statsContent.replaceChildren(); void refresh(); });
+setInterval(() => {
+  if (token && view === 'stats' && !document.hidden) void refresh();
+}, 30000);
+
+showView();
 if (!signingConfigured) {
   form.querySelector('button').disabled = true;
   status.textContent = 'The shared wall is awaiting setup.';

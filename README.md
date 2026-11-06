@@ -32,6 +32,10 @@ where id = '<owner user ID>'::uuid;
 
 Visit `/admin/` and sign in as `swaritlol` with that password. The owner can review and remove individual signatures. Visitors draw directly on the shared canvas and add their name in the toolbar. **More wall space** extends the same canvas. Both editions share one signature allowance per browser. The database validates the ink budget and rejects overlapping signatures.
 
+## Visitor stats
+
+Open `/admin/stats` or choose **Stats** after signing in to `/admin/`. The dashboard shows anonymous sessions, referral domains, device categories, project and section views, and wall activity. It shows a signer's public display name after a saved mark. Tracking starts with deployment, honors Do Not Track and Global Privacy Control, and does not store IP addresses, full referrer URLs, or what visitors type.
+
 ## Logo artwork
 
 `public/logo-outline.png` is the supplied white-on-black S. The renderer extracts its silhouette at source resolution and lights it with a soft matte finish. Both color modes and the reduced-motion still use that same outline.
