@@ -20,7 +20,9 @@ const themeColor = document.querySelector('meta[name="theme-color"]');
 let theme = new URLSearchParams(location.search).get('mode') === 'inverted' ? light : dark;
 let entryPalette = theme;
 let stagePalette = entryPalette;
-mountPortfolio(portfolio);
+const entryHash = location.hash;
+if (entryHash) history.replaceState(history.state, '', location.pathname + location.search);
+const openLinkedProject = mountPortfolio(portfolio);
 mountPortfolioVelocity(portfolio, reducedMotion);
 const build = createBuildSequence(portfolio, reducedMotion);
 
@@ -77,7 +79,7 @@ function setRevealed(value) {
   themeColor.content = value ? theme.ink : stagePalette.paper;
   if (value && !buildStarted) {
     buildStarted = true;
-    void build.start();
+    if (!openLinkedProject(entryHash)) void build.start();
   } else if (!value) build.stop();
 }
 

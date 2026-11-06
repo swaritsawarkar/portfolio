@@ -11,19 +11,24 @@ const arrow = '<span aria-hidden="true">↗</span>';
 const link = (text, href, attributes = '') => '<a href="' + escape(href) + '" ' + attributes + '>' + escape(text) + '</a>';
 
 function frame(src, alt, caption, className = '') {
-  return '<figure class="' + className + '" data-part="box"><div class="media-frame"><img src="' + escape(src) +
-    '" alt="' + escape(alt) + '" loading="lazy" decoding="async"></div><figcaption>' + escape(caption) + '</figcaption></figure>';
+  return '<figure class="' + className + '"><div class="media-frame" data-part="media"><img src="' + escape(src) +
+    '" alt="' + escape(alt) + '" loading="lazy" decoding="async"></div><figcaption data-part="copy" data-build-after="media">' +
+    escape(caption) + '</figcaption></figure>';
 }
 
 function chapter(id, title, description, content, label) {
   return '<section class="chapter" id="' + id + '" data-scene aria-labelledby="' + id + '-title">' +
-    '<header class="chapter-head">' + (label ? '<span class="chapter-label">' + label + '</span>' : '') +
+    '<header class="chapter-head">' + (label ? '<span class="chapter-label" data-part="copy">' + label + '</span>' : '') +
     '<h2 id="' + id + '-title" data-part="type">' + title +
     '</h2>' + (description ? '<p data-part="copy">' + description + '</p>' : '') + '</header>' + content + '</section>';
 }
 
 const featured = ['strikeout-os', 'pixelcut-pro', '10thhojayega']
   .map((slug) => projects.find((project) => project.slug === slug));
+const highlights = {
+  'strikeout-os': 'MU20 Hackathon winner · ₹35,000 prize',
+  '10thhojayega': '300 users',
+};
 const mu20Win = 'MU20 Hackathon winner with STRIKEOUT · ₹35,000 prize.';
 const wins = [
   ['mu20', 1500, 2000, mu20Win],
@@ -38,15 +43,15 @@ const photoRatio = ([, width, height]) => width / height;
 function winPhoto(entry, index) {
   const [file, width, height, title, note] = entry;
   const src = photo(file + '.webp');
-  return '<figure class="win-photo" data-part="box" style="--photo-ratio:' + photoRatio(entry) + ';--slide-progress:' +
-    index / (wins.length - 1) + '"><div class="media-frame"><img src="' + src + '" alt="' + escape(title) + '" width="' + width +
-    '" height="' + height + '" loading="lazy" decoding="async"></div><figcaption><strong>' + escape(title) +
+  return '<figure class="win-photo" style="--photo-ratio:' + photoRatio(entry) + ';--slide-progress:' +
+    index / (wins.length - 1) + '"><div class="media-frame" data-part="media"><img src="' + src + '" alt="' + escape(title) + '" width="' + width +
+    '" height="' + height + '" loading="lazy" decoding="async"></div><figcaption data-part="copy" data-build-after="media"><strong>' + escape(title) +
     '</strong>' + (note ? '<span>' + escape(note) + '</span>' : '') + '</figcaption></figure>';
 }
 const timeline = [
   ['2023', ['Entered boarding school', 'NUS + NTU Data Science Workshop', 'SGFI football · state level']],
   ['2024', ['Indian Debating League · national qualifier', 'Harvard Sustainability Summit at FLAME University']],
-  ['2025', ['Robo Race Nationals · second place', 'SBI Life Spell Bee · national top 20', 'Technoxian', 'Ex-CMO, MUNIFY']],
+  ['2025', ['Robo Race Nationals · second place', 'SBI Life Spell Bee · national top 20', 'Technoxian']],
   ['2026', [mu20Win, 'One Million Founders · Five-day program covering ideas, prototypes, and pitching.',
     'Team Captain, DaVinci 027', 'Shoolini Summer Lab Program', 'Technical Head, Content Creation Club',
     'WSRO Nationals Junior Drone · top eight', 'Blix · top ten', 'Round Square Zoom Postcard',
@@ -71,25 +76,111 @@ const socials = [
     '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 0a12 12 0 100 24 12 12 0 000-24zm5.5 17.3a.75.75 0 01-1 .25c-2.7-1.65-6.1-2-10.1-1.1a.75.75 0 11-.33-1.46c4.36-1 8.1-.59 11.1 1.25.36.21.47.7.33 1.06zm1.47-3.27a.94.94 0 01-1.28.31c-3.1-1.9-7.83-2.46-11.5-1.34a.94.94 0 11-.55-1.8c4.2-1.27 9.4-.66 12.96 1.55.43.27.57.85.37 1.28zm.13-3.4C15.4 8.5 8.6 8.27 5.06 9.34a1.13 1.13 0 11-.66-2.16c4.07-1.24 11.6-1 16.04 1.65a1.13 1.13 0 01-1.16 1.94z"/></svg>'],
 ];
 
-function projectRow(project) {
+function projectDetails(project) {
   const media = project.media?.filter((item) => item.kind === 'image') ?? [];
-  return '<details class="project-row" id="' + escape(project.slug) + '" data-part="box">' +
-    '<summary><span class="row-number">' + escape(project.n) + '</span><strong>' + escape(project.name) +
-    '</strong><span class="row-summary">' + escape(project.summary) + '</span><span class="row-plus" aria-hidden="true">+</span></summary>' +
-    '<div class="project-body"><p>' + escape(project.desc) + '</p>' +
+  return '<div class="project-body"><p>' + escape(project.desc) + '</p>' +
     (project.features?.length ? '<ul>' + project.features.map((feature) => '<li>' + escape(feature) + '</li>').join('') + '</ul>' : '') +
     '<p class="stack">' + escape(project.stack.join(' / ')) + '</p><div class="inline-links">' +
     project.links.map(({label, href}) => link(label, href)).join('') + '</div>' +
     (media.length ? '<div class="media-grid">' + media.map(({src, alt, caption}) => frame(src, alt, caption)).join('') + '</div>' : '') +
-    '</div></details>';
+    '</div>';
+}
+
+function feature({slug, media, name, summary, links, status}) {
+  const lead = slug === 'strikeout-os';
+  const [image] = media;
+  return '<article class="work-feature' + (lead ? ' work-lead' : '') + '">' +
+    '<div class="work-image" data-part="frame"><img data-part="media" src="' + escape(image.src) + '" alt="' + escape(image.alt) +
+    '" loading="lazy" decoding="async"></div><div class="work-caption">' +
+    '<p class="work-metric" data-part="copy">' + escape(highlights[slug] ?? status) + '</p>' +
+    '<h3 data-part="type">' + escape(name) + '</h3>' +
+    '<p class="work-summary" data-part="copy">' + escape(summary) + '</p>' +
+    '<div class="work-links">' +
+    links.filter(({label}) => label === 'Visit website' || label === 'View on GitHub')
+      .map(({label, href}) => link(label === 'Visit website' ? 'Visit site ↗' : 'GitHub ↗', href, 'data-part="link"')).join('') +
+    link('Project details ↗', '#' + slug, 'data-part="link" data-project aria-haspopup="dialog" aria-label="' +
+      escape(name + ' project details') + '"') + '</div></div></article>';
+}
+
+function mountWorkDialogs(root) {
+  const dialog = root.querySelector('.work-dialog');
+  const heading = dialog.querySelector('h2');
+  const content = dialog.querySelector('.work-dialog-content');
+  const close = dialog.querySelector('.work-close');
+  const archiveButton = root.querySelector('[data-work-archive]');
+  const archive = '<div class="work-archive-grid">' + projects.filter((project) => !featured.includes(project)).map((project) => {
+    const image = project.media?.find(({kind}) => kind === 'image');
+    return '<a href="#' + escape(project.slug) + '" data-project class="work-archive-item">' +
+      (image ? '<img src="' + escape(image.src) + '" alt="' + escape(image.alt) + '" loading="lazy">' : '') +
+      '<small>' + escape(project.status) + '</small><strong>' + escape(project.name) + '</strong><p>' +
+      escape(project.summary) + '</p></a>';
+  }).join('') + '</div>';
+  let opener;
+  let returnHash = '';
+  let fromArchive = false;
+
+  function show(project, trigger) {
+    if (!dialog.open) {
+      opener = trigger;
+      returnHash = location.hash === '#' + project?.slug ? '#work' : location.hash;
+      fromArchive = false;
+    }
+    heading.textContent = project?.name ?? 'More experiments';
+    content.innerHTML = project
+      ? (fromArchive ? '<button type="button" class="work-back" data-work-back>← All experiments</button>' : '') + projectDetails(project)
+      : archive;
+    if (!dialog.open) dialog.showModal();
+    dialog.scrollTop = 0;
+    close.focus({ preventScroll: true });
+  }
+
+  function showHash(hash = location.hash) {
+    if (root.inert) return false;
+    const project = projects.find(({slug}) => hash === '#' + slug);
+    if (!project) {
+      if (dialog.open && heading.textContent !== 'More experiments') dialog.close();
+      return false;
+    }
+    const trigger = [...root.querySelectorAll('.work-feature [data-project]')]
+      .find((anchor) => anchor.hash === hash) ?? archiveButton;
+    if (location.hash !== hash) history.replaceState(history.state, '', hash);
+    if (!dialog.open) trigger.closest('.work-feature, #work').scrollIntoView({ block: 'start', behavior: 'instant' });
+    show(project, trigger);
+    return true;
+  }
+
+  root.addEventListener('click', (event) => {
+    const anchor = event.target.closest('[data-project]');
+    if (anchor && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      const project = projects.find(({slug}) => anchor.hash === '#' + slug);
+      if (!project) return;
+      event.preventDefault();
+      if (dialog.open && heading.textContent === 'More experiments') fromArchive = true;
+      show(project, anchor);
+      if (location.hash !== anchor.hash) history.pushState(history.state, '', anchor.hash);
+    } else if (event.target.closest('[data-work-archive], [data-work-back]')) {
+      if (dialog.open && projects.some(({slug}) => location.hash === '#' + slug)) {
+        history.replaceState(history.state, '', returnHash || location.pathname + location.search);
+      }
+      show(null, archiveButton);
+    }
+  });
+  dialog.addEventListener('close', () => {
+    if (projects.some(({slug}) => location.hash === '#' + slug)) {
+      history.replaceState(history.state, '', returnHash || location.pathname + location.search);
+    }
+    opener?.focus({ preventScroll: true });
+  });
+  window.addEventListener('hashchange', () => showHash());
+  return showHash;
 }
 
 export function mountPortfolio(root) {
-  const work = '<div class="feature-grid">' + featured.map(({slug, media, name, summary}) =>
-    (slug === 'strikeout-os' ? '<div class="feature-lead">' : '<div>') +
-    frame(media[0].src, media[0].alt, name) + '<p class="feature-copy" data-part="copy">' + escape(summary) +
-    '</p>' + link('Project details ↘', '#' + slug, 'class="text-link" data-part="link" data-project') + '</div>').join('') +
-    '</div><div class="project-index">' + projects.map(projectRow).join('') + '</div>';
+  const work = '<div class="work-grid">' + featured.map(feature).join('') + '</div>' +
+    '<button type="button" class="work-more" data-work-archive data-part="link" aria-haspopup="dialog">More experiments ↗</button>' +
+    '<dialog class="work-dialog" aria-labelledby="work-dialog-title"><header><h2 id="work-dialog-title"></h2>' +
+    '<form method="dialog"><button class="work-close" aria-label="Close project panel">Close <span aria-hidden="true">×</span></button></form>' +
+    '</header><div class="work-dialog-content"></div></dialog>';
   const creative = '<div class="creative-grid">' +
     frame(genZCoverItem.src, genZCoverItem.alt, genZCoverItem.caption) +
     frame(davinciTeamSeries[0].src, davinciTeamSeries[0].alt, davinciTeamSeries[0].caption) + '</div>' +
@@ -118,8 +209,8 @@ export function mountPortfolio(root) {
     entries.map((entry, index) => '<li data-part="' + (index % 2 === 0 ? 'copy' : 'link') + '">' +
       escape(entry) + '</li>').join('') + '</ul></div>').join('') + '</div>';
   const stack = '<div class="skills-grid">' + skills.map(([title, tools]) =>
-    '<section class="skill-row"><h3 data-part="copy">' + escape(title) + '</h3><ul data-part="box" aria-label="' + escape(title) + '">' +
-    tools.map(([name, icon]) => '<li><button class="skill-tile" type="button" aria-label="' + escape(name) + '" aria-pressed="false">' +
+    '<section class="skill-row"><h3 data-part="copy">' + escape(title) + '</h3><ul aria-label="' + escape(title) + '">' +
+    tools.map(([name, icon]) => '<li data-part="skill"><button class="skill-tile" type="button" aria-label="' + escape(name) + '" aria-pressed="false">' +
       '<img src="' + base + 'skills/' + icon + '" width="42" height="42" alt="" decoding="async">' +
       '<span aria-hidden="true">' + escape(name) + '</span></button></li>').join('') + '</ul></section>').join('') + '</div>';
   const contact = '<div class="contact-grid"><div class="contact-mail" data-part="box">' +
@@ -147,8 +238,6 @@ export function mountPortfolio(root) {
 
   mountPhotoCarousel(root.querySelector('.wins-carousel'));
   root.addEventListener('click', (event) => {
-    const anchor = event.target.closest('[data-project]');
-    if (anchor) document.getElementById(anchor.hash.slice(1)).open = true;
     const skill = event.target.closest('.skill-tile');
     if (skill) {
       const selected = root.querySelector('.skill-tile[aria-pressed="true"]');
@@ -156,4 +245,5 @@ export function mountPortfolio(root) {
       if (skill !== selected) skill.setAttribute('aria-pressed', 'true');
     }
   });
+  return mountWorkDialogs(root);
 }

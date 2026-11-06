@@ -10,7 +10,7 @@ function rangeFor(node, start, end = start) {
   return range;
 }
 
-function makeTrack(node, index, start, limit) {
+function makeTrack(node, index, start, limit, readable, correction) {
   const content = node.data.slice(start, limit);
   const characters = segmenter
     ? Array.from(segmenter.segment(content), ({segment}) => segment)
@@ -19,36 +19,36 @@ function makeTrack(node, index, start, limit) {
   const editAt = word ? start + Math.floor(content.length * .25) + word.index : -1;
   const wrongLetter = word?.[0][0].toLowerCase() === 'x' ? 'z' : 'x';
   const events = [{ time: 0, end: start }];
-  let time = 45;
+  let time = 25;
   let end = start;
-  let edit = index % 5;
+  let edit = correction;
   characters.forEach((char, i) => {
-    if (end >= editAt && editAt >= 0 && edit === 0) {
+    if (end >= editAt && editAt >= 0 && edit === 'typo') {
       events.push({ time, end, typo: wrongLetter });
-      time += 210;
+      time += 175;
       events.push({ time, end });
-      time += 95;
-      edit = -1;
+      time += 65;
+      edit = null;
     }
     const charStart = end;
     end += char.length;
     events.push({ time, end });
-    time += 22 + (i * 17 + index * 11) % 26;
-    if (/[.!?,;:]/u.test(char)) time += 67;
-    if (edit === 2 && editAt >= 0 && end >= editAt + word[0].length && charStart < editAt + word[0].length) {
+    time += (readable ? 24 : 8) + (i * 17 + index * 11) % (readable ? 12 : 8);
+    if (/[.!?,;:]/u.test(char)) time += 30;
+    if (edit === 'select' && editAt >= 0 && end >= editAt + word[0].length && charStart < editAt + word[0].length) {
       events.push({ time, end, selection: editAt });
-      time += 190;
+      time += 170;
       events.push({ time, end: editAt });
-      time += 75;
+      time += 60;
       for (const letter of word[0]) {
         const previous = events.at(-1).end;
         events.push({ time, end: previous + letter.length });
-        time += 31;
+        time += 22;
       }
-      edit = -1;
+      edit = null;
     }
   });
-  return { node, start, limit, events, duration: time + 100, hidden: rangeFor(node, start, limit), current: -1 };
+  return { node, start, limit, events, duration: time + 50, hidden: rangeFor(node, start, limit), current: -1 };
 }
 
 function sections(text) {
@@ -69,6 +69,7 @@ function textNodes(element) {
           !node.parentElement.getClientRects().length) {
         return NodeFilter.FILTER_REJECT;
       }
+      if (node.parentElement.closest('[data-part], .portrait') !== element) return NodeFilter.FILTER_REJECT;
       const closed = node.parentElement.closest('details:not([open])');
       if (closed && !closed.querySelector(':scope > summary')?.contains(node)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
@@ -92,8 +93,12 @@ export function createTyping() {
   return {
     prepare(element) {
       if (!pending) return [];
+      const readable = element.matches('[data-part="type"], .work-metric');
+      let correction = element.matches('.work-lead .work-summary') ? 'select'
+        : element.matches('.hero-deck, .about-copy p:nth-child(2)') ? 'typo' : null;
       return textNodes(element).flatMap((node) => sections(node.data).map(([start, end]) => {
-        const track = makeTrack(node, count++, start, end);
+        const track = makeTrack(node, count++, start, end, readable, correction);
+        correction = null;
         pending.add(track.hidden);
         return track;
       }));
@@ -101,7 +106,7 @@ export function createTyping() {
     type(track, elapsed, pen) {
       let index = track.current;
       while (track.events[index + 1]?.time <= elapsed) index++;
-      const layout = innerWidth + ':' + innerHeight;
+      const layout = innerWidth + ':' + innerHeight + ':' + scrollY;
       if (track.current === index && track.layout === layout && !pen.caret.hidden) return track.caret;
       track.current = index;
       track.layout = layout;

@@ -152,17 +152,6 @@ export const projects: Project[] = [
     group: "shipped",
   },
   {
-    slug: "munify",
-    n: "09",
-    name: "MUNIFY",
-    status: "IN PROGRESS",
-    summary: "Brand, content, and video work for an MUN platform.",
-    desc: "Platform reshaping the MUN experience. Ex-CMO. Ran content, video, and brand from scratch.",
-    stack: ["CMO", "Content Strategy", "Video", "Brand"],
-    links: [],
-    group: "in-progress",
-  },
-  {
     slug: "dust-to-dollars",
     n: "04",
     name: "Dust to Dollars",

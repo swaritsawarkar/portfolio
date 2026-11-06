@@ -22,15 +22,14 @@ function animate(duration, render, signal, clock) {
       elapsed += delta + boosted * 1.5;
       previous = now;
       const t = clamp(elapsed / duration);
-      let keepGoing;
       try {
-        keepGoing = render(t);
+        render(t);
       } catch (error) {
         signal.removeEventListener('abort', settle);
         reject(error);
         return;
       }
-      if (t < 1 && keepGoing !== false) frame = requestAnimationFrame(step);
+      if (t < 1) frame = requestAnimationFrame(step);
       else settle();
     }
     signal.addEventListener('abort', settle, { once: true });
@@ -48,7 +47,7 @@ const roles = [
 const viewportWidth = () => document.documentElement.clientWidth;
 const pageTop = (node) => node.getBoundingClientRect().top + scrollY;
 const rush = (t) => { t = clamp(t); return t < .5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2; };
-const clickTime = 145;
+const clickTime = 100;
 
 function worker(layer, role) {
   const outline = document.createElement('div');
@@ -77,10 +76,6 @@ function worker(layer, role) {
     hover(x, y, holding = false) {
       this.put(clamp(x, 7, viewportWidth() - 86), clamp(y, 9, innerHeight - 70), holding);
     },
-    check(active) {
-      outline.classList.toggle('is-checking', active);
-      if (!active) outline.hidden = true;
-    },
     select(rect, x, y, opacity) {
       const left = clamp(rect.left + x - 6, 0, viewportWidth());
       const right = clamp(rect.right + x + 6, 0, viewportWidth());
@@ -97,21 +92,28 @@ function worker(layer, role) {
 }
 
 function prepare(scene, typing) {
-  const selector = '[data-part], .portrait, .chapter-label';
-  const pieces = [...scene.querySelectorAll(selector)].filter((target) => !target.parentElement.closest(selector));
-  return pieces.map((target) => {
-    const part = target.dataset.part;
-    const lane = part === 'link' || target.matches('details, .contact-mail') ? 2
-      : part === 'type' || part === 'copy' || target.matches('.chapter-label, .timeline-year, .about-copy') ? 0 : 1;
+  const targets = [...scene.querySelectorAll('[data-part], .portrait')].filter((target) => {
+    const disclosure = target.closest('details:not([open])');
+    return !disclosure || disclosure === target;
+  });
+  const pieces = targets.map((target) => {
+    const kind = target.dataset.part || 'media';
+    const preferred = kind === 'frame' ? 1 : kind === 'link' ? 2 : kind === 'media' ? 3
+      : kind === 'skill' || target.closest('.timeline-list') ? 4 : kind === 'box' ? 1 : 0;
+    const placement = kind === 'skill' ? 225 : kind === 'frame' ? 460
+      : kind === 'media' || kind === 'box' ? 495 : 260;
     target.classList.add('build-piece');
     target.dataset.buildState = 'waiting';
-    const tracks = typing.prepare(target);
-    const placement = target.matches('.portrait') ? 1250 : part === 'box' ? 850 : 510;
-    return {
-      target, lane, x: 0, y: 0, source: null, tracks, placement,
-      duration: placement + tracks.reduce((total, track) => total + (track.start ? 0 : track.duration + clickTime), 0),
-    };
+    return { target, kind, preferred, placement, tracks: typing.prepare(target), x: 0, y: 0 };
   });
+  const lookup = new Map(pieces.map((piece) => [piece.target, piece]));
+  for (const piece of pieces) {
+    const { target } = piece;
+    const frame = target.parentElement.closest('[data-part="frame"]');
+    const photo = target.dataset.buildAfter === 'media' && target.closest('figure');
+    piece.after = lookup.get(frame || (photo && photo.querySelector('[data-part="media"]')));
+  }
+  return pieces;
 }
 
 function offset(piece, x, y, opacity) {
@@ -147,7 +149,7 @@ function grab(actor, piece, time, index) {
   if (!piece.source) {
     const room = Math.max(0, width - rect.right - 24);
     const year = timeline && piece.target.matches('strong');
-    const distance = year ? 19 : width * (piece.lane === 2 ? .16 : .12);
+    const distance = year ? 19 : width * (piece.kind === 'link' ? .16 : .12);
     piece.source = {
       x: portrait ? Math.min(180, width * .15) : Math.min(room, distance),
       // Timeline text has dedicated baselines. Drag along each line so nearby
@@ -216,125 +218,174 @@ function groupByView(scene, pieces) {
   return [...batches.values()].sort((a, b) => a.position - b.position);
 }
 
-function distribute(pieces, actors) {
-  const queues = actors.map((actor) => ({ actor, items: [], duration: 0 }));
-  const order = new Map(pieces.map((piece, index) => [piece, index]));
-  const longestFirst = [...pieces].sort((a, b) => b.duration - a.duration);
-  for (const piece of longestFirst) {
-    const preferred = queues[piece.lane];
-    const shortest = queues.reduce((best, queue) => queue.duration < best.duration ? queue : best);
-    const queue = preferred.duration <= shortest.duration ? preferred : shortest;
-    queue.items.push(piece);
-    queue.duration += piece.duration;
+const sceneTimes = {
+  home: 4000, work: 5000, creative: 2800, about: 3600,
+  achievements: 4000, timeline: 3500, skills: 3800, contact: 2600,
+};
+
+function planJobs(pieces, actors) {
+  const jobs = [];
+  const placements = new Map();
+  for (const piece of pieces) {
+    const placement = { piece, duration: piece.placement, preferred: piece.preferred };
+    placements.set(piece, placement);
+    jobs.push(placement);
+    const primary = piece.tracks.filter((track) => track.start === 0);
+    const parallel = piece.tracks.filter((track) => track.start > 0).map((track) => [track]);
+    for (const tracks of [primary, ...parallel]) {
+      if (!tracks.length) continue;
+      jobs.push({
+        piece, tracks, after: placement, preferred: piece.preferred,
+        duration: clickTime + tracks.reduce((sum, track) => sum + track.duration, 0),
+      });
+    }
   }
-  queues.forEach(({items}) => items.sort((a, b) => order.get(a) - order.get(b)));
-  return queues;
-}
+  for (const [piece, job] of placements) job.after = placements.get(piece.after);
 
-async function typeTrack(actor, track, typing, signal, clock) {
-  const from = { x: actor.x, y: actor.y };
-  const rect = track.node.parentElement.getBoundingClientRect();
-  const start = document.createRange();
-  start.setStart(track.node, track.start);
-  start.collapse(true);
-  const line = start.getBoundingClientRect();
-  const clickX = (line.height ? line.left : rect.left) + 5;
-  const clickY = (line.height ? line.top : rect.top) + 4;
-  let previous = clickTime;
-  await animate(track.duration + clickTime, (t) => {
-    const elapsed = t * (track.duration + clickTime);
-    if (elapsed <= clickTime) {
-      const p = ease(elapsed / clickTime);
-      actor.hover(mix(from.x, clickX, p), mix(from.y, clickY, p), p > .72);
-      return;
+  const free = actors.map(() => 0);
+  const ordered = [];
+  while (jobs.length) {
+    const firstFree = Math.min(...free);
+    let nextIndex = -1;
+    let earliest = Infinity;
+    for (const [index, job] of jobs.entries()) {
+      const dependency = job.after ? job.after.end : 0;
+      if (dependency === undefined) continue;
+      const start = Math.max(firstFree, dependency);
+      if (start < earliest) {
+        nextIndex = index;
+        earliest = start;
+      }
     }
-    const writingTime = elapsed - clickTime;
-    const caret = typing.type(track, writingTime, actor);
-    const top = caret?.height ? caret.top : rect.top;
-    const bottom = caret?.height ? caret.bottom : rect.bottom;
-    const sweep = Math.sin(writingTime / 370) * Math.min(38, rect.width * .22);
-    const x = mix(clickX, caret?.height ? caret.left : clickX, .55) + sweep;
-    const y = (top > 54 ? top - 47 : bottom + 10) + Math.cos(writingTime / 245) * 5;
-    // Glide around the active line while the caret follows individual letters.
-    const follow = 1 - Math.exp(-(elapsed - previous) / 95);
-    actor.hover(mix(actor.x, x, follow), mix(actor.y, y, follow));
-    previous = elapsed;
-  }, signal, clock);
-  actor.caret.hidden = true;
-  if (!signal.aborted) typing.reveal(track);
+    const [job] = jobs.splice(nextIndex, 1);
+    const preferred = job.preferred;
+    job.lane = free[preferred] <= earliest + 35 ? preferred : free.indexOf(firstFree);
+    job.start = Math.max(free[job.lane], earliest);
+    job.end = job.start + job.duration;
+    free[job.lane] = job.end;
+    ordered.push(job);
+  }
+  return { jobs: ordered, duration: Math.max(...free) };
 }
 
-function inspectEdge(actor, piece, lane, pass, signal, clock, hasWork) {
+function drawFrame(actor, piece, t, from) {
   const rect = pieceRect(piece);
-  const from = { x: actor.x, y: actor.y };
-  const width = viewportWidth();
-  const height = innerHeight;
-  const right = clamp(rect.right + 9, 80, width - 86);
-  const left = clamp(rect.left - 9, 8, right - 68);
-  const bottom = clamp(rect.bottom + 13, 75, height - 72);
-  const top = clamp(rect.top - 17, 10, bottom - 60);
-  const edge = (lane + pass) % 4;
-  const vertical = edge % 2 === 1;
-  const reverse = edge > 1;
-  const span = vertical ? bottom - top : right - left;
-  actor.check(true);
-  return animate(940 + lane * 75, (t) => {
-    if (hasWork()) return false;
-    const approach = ease(t / .31);
-    const progress = clamp((t - .23) / .77);
-    const along = reverse ? 1 - progress : progress;
-    const x = vertical ? (edge === 1 ? right : left) : left + span * along;
-    const y = vertical ? top + span * along : (edge === 0 ? top : bottom);
-    const arc = Math.sin(Math.PI * approach) * 25;
-    actor.hover(mix(from.x, x, approach) + arc, mix(from.y, y, approach) - arc, t > .27);
-    const trail = Math.min(span * progress, 78);
-    const guide = vertical
-      ? { left: x + 5, right: x + 5, top: reverse ? y : y - trail, bottom: reverse ? y + trail : y }
-      : { left: reverse ? x : x - trail, right: reverse ? x + trail : x, top: y + 4, bottom: y + 4 };
-    actor.select(guide, 0, 0, .76 * ease((t - .25) / .25));
-  }, signal, clock).finally(() => actor.check(false));
+  const approach = ease(t / .26);
+  const growth = ease((t - .22) / .72);
+  const right = mix(rect.left + 1, rect.right, growth);
+  const bottom = mix(rect.top + 1, rect.bottom, growth);
+  actor.hover(mix(from.x, right, approach), mix(from.y, bottom, approach), t > .22);
+  actor.select({ ...rect, right, bottom }, 0, 0, ease(t / .22));
 }
 
-async function assemble(batch, actors, signal, clock, typing) {
-  const queues = distribute(batch.pieces, actors);
-  const handoffs = [];
-  let running = 0;
-  const hasWork = () => !running || handoffs.length > 0 || queues.some(({items}) => items.length);
-  await Promise.all(queues.map(async ({actor, items}, lane) => {
-    let pass = 0;
-    let index = 0;
-    while (!signal.aborted) {
-      const track = !items.length && handoffs.shift();
-      const piece = !track && (items.shift() ?? queues.find((queue) => queue.items.length)?.items.shift());
-      if (!track && !piece) {
-        if (!running) break;
-        const placed = batch.pieces.filter(({target}) => target.dataset.buildState === 'placed');
-        const candidates = placed.length ? placed : batch.pieces;
-        const target = candidates[(lane + pass) % candidates.length];
-        await inspectEdge(actor, target, lane, pass++, signal, clock, hasWork);
-        continue;
+function paintText(actor, job, time, typing) {
+  let elapsed = Math.max(0, time - clickTime);
+  const { tracks, from } = job;
+  while (job.trackIndex < tracks.length - 1 && elapsed >= tracks[job.trackIndex].duration) {
+    const complete = tracks[job.trackIndex++];
+    typing.reveal(complete);
+  }
+  const track = tracks[job.trackIndex];
+  for (let i = 0; i < job.trackIndex; i++) elapsed -= tracks[i].duration;
+  if (time < clickTime) {
+    const range = document.createRange();
+    range.setStart(track.node, track.start);
+    range.collapse(true);
+    const start = range.getBoundingClientRect();
+    const p = ease(time / clickTime);
+    actor.hover(mix(from.x, start.left + 5, p), mix(from.y, start.top + 5, p), p > .72);
+    return;
+  }
+
+  const caret = typing.type(track, Math.max(0, elapsed), actor);
+  if (!caret?.height) return;
+  const rect = track.node.parentElement.getBoundingClientRect();
+  const y = caret.top > 54 ? caret.top - 42 : caret.bottom + 9;
+  const reach = mix(rect.left, caret.left, .48);
+  const settle = .24;
+  actor.hover(mix(actor.x, reach + Math.sin(elapsed / 230) * 18, settle), mix(actor.y, y, settle));
+}
+
+function finishJob(actor, job, typing) {
+  if (job.tracks) {
+    job.tracks.forEach(typing.reveal);
+    actor.caret.hidden = true;
+  } else place(job.piece);
+  actor.outline.hidden = true;
+}
+
+function planBuild(scenes, actors, rail, home) {
+  const lanes = actors.map(() => []);
+  const camera = [];
+  let duration = 0;
+  const limit = document.documentElement.scrollHeight - innerHeight;
+  const railLimit = rail.scrollWidth - rail.clientWidth;
+  for (const {scene, pieces} of scenes) {
+    const batches = groupByView(scene, pieces).map((batch) => ({
+      ...batch, ...planJobs(batch.pieces, actors),
+    }));
+    const weights = batches.map((batch) => 300 + batch.duration ** .83);
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    for (const [index, batch] of batches.entries()) {
+      const slot = sceneTimes[scene.id] * weights[index] / total;
+      const previous = camera.at(-1) ?? { top: home, rail: rail.scrollLeft };
+      const top = clamp(batch.top, home, limit);
+      const left = batch.photo ? clamp(batch.photo.offsetLeft, 0, railLimit) : previous.rail;
+      const travel = Math.abs(top - previous.top) > 8 || Math.abs(left - previous.rail) > 8
+        ? Math.min(360, slot * .32) : 0;
+      const lead = travel ? Math.min(100, duration * .12) : 0;
+      camera.push({ start: duration - lead, end: duration + travel, from: previous, top, rail: left });
+
+      const scale = (slot - travel) / Math.max(1, batch.duration);
+      for (const job of batch.jobs) {
+        const start = duration + travel + job.start * scale;
+        const end = duration + travel + job.end * scale;
+        lanes[job.lane].push({ ...job, start, end, trackIndex: 0 });
       }
-      running++;
-      try {
-        if (track) {
-          await typeTrack(actor, track, typing, signal, clock);
-          continue;
-        }
-        const jobIndex = index++;
-        await animate(piece.placement, (t) => grab(actor, piece, t, jobIndex), signal, clock);
-        if (signal.aborted) return;
-        place(piece);
-        actor.outline.hidden = true;
-        handoffs.push(...piece.tracks.filter((section) => section.start > 0));
-        for (const section of piece.tracks) {
-          if (signal.aborted) return;
-          if (section.start === 0) await typeTrack(actor, section, typing, signal, clock);
-        }
-      } finally {
-        running--;
-      }
+      duration += slot;
     }
-  }));
+  }
+  return { lanes, camera, duration };
+}
+
+async function assemble(scenes, actors, rail, home, signal, clock, typing) {
+  const { lanes, camera, duration } = planBuild(scenes, actors, rail, home);
+  const indices = actors.map(() => 0);
+  let view = 0;
+  await animate(duration, (t) => {
+    const time = t * duration;
+    while (camera[view + 1]?.start <= time) view++;
+    const shot = camera[view];
+    const movement = shot.end > shot.start ? ease((time - shot.start) / (shot.end - shot.start)) : 1;
+    const top = Math.round(mix(shot.from.top, shot.top, movement));
+    if (scrollY !== top) scrollTo(0, top);
+    if (shot.from.rail !== shot.rail) rail.scrollLeft = mix(shot.from.rail, shot.rail, movement);
+
+    actors.forEach((actor, lane) => {
+      const jobs = lanes[lane];
+      while (jobs[indices[lane]]?.end <= time + .01) finishJob(actor, jobs[indices[lane]++], typing);
+      const job = jobs[indices[lane]];
+      if (!job) return;
+      job.from ??= { x: actor.x, y: actor.y };
+      if (time < job.start) {
+        const available = jobs[indices[lane] - 1]?.end ?? 0;
+        const approach = Math.max(available, job.start - 220);
+        if (time < approach) return;
+        const rect = pieceRect(job.piece);
+        const p = ease((time - approach) / (job.start - approach));
+        actor.hover(mix(job.from.x, rect.left + 18, p), mix(job.from.y, rect.top - 22, p));
+        return;
+      }
+      if (!job.active) {
+        job.from = { x: actor.x, y: actor.y };
+        job.active = true;
+      }
+      const p = clamp((time - job.start) / (job.end - job.start));
+      if (job.tracks) paintText(actor, job, p * job.duration, typing);
+      else if (job.piece.kind === 'frame') drawFrame(actor, job.piece, p, job.from);
+      else grab(actor, job.piece, p, indices[lane]);
+    });
+  }, signal, clock);
 }
 
 async function drawSignature(layer, actors, signal) {
@@ -497,26 +548,7 @@ export function createBuildSequence(portfolio, preference) {
     preference.addEventListener('change', () => { if (preference.matches) finish(true); }, { signal });
 
     try {
-      constructionLoop: for (const { scene, pieces } of scenes) {
-        for (const batch of groupByView(scene, pieces)) {
-          if (buildSignal.aborted) break constructionLoop;
-          const from = scrollY;
-          const target = clamp(batch.top, home(), document.documentElement.scrollHeight - innerHeight);
-          const railFrom = rail.scrollLeft;
-          const railTarget = batch.photo ? Math.min(batch.photo.offsetLeft, rail.scrollWidth - rail.clientWidth) : railFrom;
-          const distance = Math.max(Math.abs(target - from), Math.abs(railTarget - railFrom));
-          if (distance > 8) {
-            const origins = actors.map(({x, y}) => ({x, y}));
-            await animate(clamp(distance * .78, 500, 1150), (t) => {
-              scrollTo(0, mix(from, target, ease(t)));
-              if (batch.photo) rail.scrollLeft = mix(railFrom, railTarget, ease(t));
-              actors.forEach((actor, lane) => restRoute(actor, origins[lane], t, lane));
-            }, buildSignal, clock);
-          }
-          if (buildSignal.aborted) break constructionLoop;
-          await assemble(batch, actors, buildSignal, clock, typing);
-        }
-      }
+      await assemble(scenes, actors, rail, home(), buildSignal, clock, typing);
       if (signal.aborted) return;
       if (constructing) beginEnding();
       const signature = await drawSignature(layer, actors, signal);
