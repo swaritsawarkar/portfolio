@@ -30,7 +30,7 @@ set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
 where id = '<owner user ID>'::uuid;
 ```
 
-Choose **Moderate** on the wall, sign in, then open a signature and confirm its deletion. This frees its square. Visitors can read the wall and sign a free square with a name. The database validates the ink budget and accepts only one signature per square.
+Choose **Moderate** on the wall, sign in, then delete a signature from its square. This frees the square. Visitors draw directly on the wall and add their name in the toolbar. More wall space adds rows to the same grid. The database validates the ink budget and accepts only one signature per square.
 
 ## Logo artwork
 

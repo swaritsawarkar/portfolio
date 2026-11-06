@@ -2,123 +2,128 @@ import { extend, measure, paper, paperPoint, renderInk, slots } from './signing-
 import { signingConfigured, signingStore } from './signing-store.js';
 import './signing-wall.css';
 
-const sheetSize = 12;
-const sheets = slots / sheetSize;
-const svgMarkup = '<svg viewBox="0 0 320 180" aria-hidden="true"></svg>';
+const rowBatch = 12;
+const firstSquares = 24;
+const svgMarkup = '<svg viewBox="0 0 320 180" preserveAspectRatio="none" aria-hidden="true"></svg>';
 const slotLabel = (slot) => String(slot + 1).padStart(3, '0');
 
 export const signingWall = `
   <div class="signing-wall" data-part="frame" data-build-static>
     <div class="wall-legend"><span>Guestbook</span><span class="wall-count">— / ${slots} signed</span></div>
-    <div class="wall-grid" aria-label="Signature squares"></div>
-    <div class="wall-foot">
-      <p class="wall-status" role="status"></p>
-      <nav class="wall-pager" aria-label="Signature sheets">
-        <button type="button" data-wall-action="previous" aria-label="Previous sheet">←</button>
-        <span class="wall-sheet" aria-live="polite"></span>
-        <button type="button" data-wall-action="next" aria-label="Next sheet">→</button>
-      </nav>
-      <button type="button" class="wall-moderate" data-wall-action="owner">Moderate</button>
-      <button type="button" data-wall-action="refresh" hidden>Retry</button>
-    </div>
-  </div>
-  <dialog class="signing-dialog" aria-labelledby="wall-dialog-title">
-    <header>
-      <h3 id="wall-dialog-title"></h3>
-      <button type="button" data-wall-action="close" aria-label="Close signature panel">×</button>
-    </header>
     <form class="wall-sign-form" hidden>
-      <label>Your name<input name="signatureName" required maxlength="40" autocomplete="name" placeholder="Name shown on the wall"></label>
-      <div class="wall-paper" aria-label="Draw your signature with a mouse, stylus, or finger">${svgMarkup}</div>
-      <div class="wall-ink"><progress max="${paper.ink}" value="${paper.ink}" aria-label="Ink remaining"></progress><span class="wall-ink-count">100% ink</span></div>
+      <div class="wall-draft-top">
+        <span class="wall-draft-slot"></span>
+        <label>Your name <input name="signatureName" required maxlength="40" autocomplete="name" placeholder="Name shown on the wall"></label>
+        <div class="wall-ink"><progress max="${paper.ink}" value="${paper.ink}" aria-label="Ink remaining"></progress><span class="wall-ink-count">100% ink</span></div>
+      </div>
       <div class="wall-tools">
         <button type="button" data-wall-action="undo">Undo</button>
         <button type="button" data-wall-action="clear">Clear</button>
+        <button type="button" data-wall-action="cancel">Cancel</button>
         <button type="submit" class="wall-primary">Sign the wall</button>
       </div>
+      <p class="wall-draft-status" role="status"></p>
     </form>
+    <div class="wall-grid" aria-label="Signature wall"></div>
+    <div class="wall-foot">
+      <p class="wall-status" role="status"></p>
+      <button type="button" data-wall-action="more">More wall space ↓</button>
+      <button type="button" data-wall-action="owner">Moderate</button>
+      <button type="button" data-wall-action="refresh" hidden>Retry</button>
+    </div>
     <form class="wall-owner-form" hidden>
       <label>Owner email<input name="email" type="email" required autocomplete="username"></label>
       <label>Password<input name="password" type="password" required autocomplete="current-password"></label>
       <button type="submit" class="wall-primary">Sign in</button>
+      <p class="wall-owner-status" role="status"></p>
     </form>
-    <div class="wall-view" hidden>
-      <div class="wall-paper">${svgMarkup}</div>
-      <button type="button" class="wall-remove" data-wall-action="remove" hidden>Delete signature</button>
-    </div>
-    <p class="wall-dialog-status" role="status"></p>
-  </dialog>`;
+  </div>`;
 
-export function mountSigningWall(section, store = signingStore, configured = signingConfigured) {
+export function mountSigningWall(section) {
   const find = (selector) => section.querySelector(selector);
   const action = (name) => find('[data-wall-action="' + name + '"]');
   const grid = find('.wall-grid');
-  const dialog = find('.signing-dialog');
-  const title = find('#wall-dialog-title');
-  const signForm = find('.wall-sign-form');
+  const form = find('.wall-sign-form');
   const ownerForm = find('.wall-owner-form');
-  const viewer = find('.wall-view');
   const notice = find('.wall-status');
-  const feedback = find('.wall-dialog-status');
-  const pad = signForm.querySelector('.wall-paper');
-  const canvas = pad.querySelector('svg');
-  const submit = signForm.querySelector('[type="submit"]');
-  const nameInput = signForm.elements.signatureName;
+  const feedback = find('.wall-draft-status');
+  const submit = form.querySelector('[type="submit"]');
+  const nameInput = form.elements.signatureName;
   const entries = new Map();
-  let sheet = 0;
+  let shown = firstSquares;
   let available = false;
   let requestId = 0;
   let token;
   let slot;
-  let viewed;
-  let opener;
+  let confirmed;
   let busy = false;
-  let confirmDelete = false;
+  let nearWall = false;
   let strokes = [];
   let pointer;
   let drawingBox;
 
+  function showThrough(index) {
+    shown = Math.max(shown, Math.ceil((index + 1) / rowBatch) * rowBatch);
+  }
+
   function paintBoard() {
-    const focused = document.activeElement?.dataset.slot;
-    const tiles = Array.from({ length: sheetSize }, (_, i) => {
-      const cell = sheet * sheetSize + i;
-      const entry = entries.get(cell);
-      const tile = document.createElement('button');
-      tile.type = 'button';
+    const focus = document.activeElement?.closest('[data-slot]')?.dataset.slot;
+    const tiles = Array.from({ length: shown }, (_, index) => {
+      const entry = entries.get(index);
+      const editing = !entry && slot === index;
+      const tile = document.createElement(entry || editing ? 'div' : 'button');
       tile.className = 'wall-tile';
-      tile.dataset.slot = cell;
-      tile.disabled = !available && !entry;
-      tile.setAttribute('aria-label', entry ? 'View signature by ' + entry.name : 'Sign square ' + slotLabel(cell));
-      tile.innerHTML = '<span class="wall-slot-number"></span>' + (entry ? svgMarkup : '<span class="wall-plus" aria-hidden="true">+</span>') +
-        '<span class="wall-signer"></span>';
-      tile.querySelector('.wall-slot-number').textContent = slotLabel(cell);
-      tile.querySelector('.wall-signer').textContent = entry?.name ?? 'Sign here';
+      tile.dataset.slot = index;
+      if (!entry && !editing) {
+        tile.type = 'button';
+        tile.disabled = !available || busy;
+        tile.setAttribute('aria-label', 'Sign square ' + slotLabel(index));
+      }
+      tile.innerHTML = '<span class="wall-slot-number"></span>' +
+        (entry ? svgMarkup : editing ? '<div class="wall-paper" aria-label="Draw in this square">' + svgMarkup + '</div>'
+          : '<span class="wall-plus" aria-hidden="true">+</span>') + '<span class="wall-signer"></span>';
+      tile.querySelector('.wall-slot-number').textContent = slotLabel(index);
+      tile.querySelector('.wall-signer').textContent = entry?.name ?? (editing ? 'Draw here' : '');
       if (entry) {
         tile.classList.add('is-signed');
         renderInk(tile.querySelector('svg'), entry.strokes);
+        if (token) {
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'wall-remove';
+          remove.dataset.removeId = entry.id;
+          remove.textContent = confirmed === entry.id ? 'Confirm delete' : 'Delete';
+          remove.setAttribute('aria-label', remove.textContent + ' signature by ' + entry.name);
+          remove.disabled = busy;
+          tile.append(remove);
+        }
+      } else if (editing) {
+        tile.classList.add('is-editing');
+        renderInk(tile.querySelector('svg'), strokes);
       }
       return tile;
     });
     grid.replaceChildren(...tiles);
-    if (focused !== undefined) grid.querySelector('[data-slot="' + focused + '"]')?.focus({ preventScroll: true });
+    if (focus !== undefined) grid.querySelector('button[data-slot="' + focus + '"]')?.focus({ preventScroll: true });
     find('.wall-count').textContent = (available || entries.size ? entries.size : '—') + ' / ' + slots + ' signed';
-    find('.wall-sheet').textContent = (sheet + 1) + ' / ' + sheets;
-    action('previous').disabled = sheet === 0;
-    action('next').disabled = sheet === sheets - 1;
-    action('owner').disabled = !configured;
-    action('owner').textContent = token ? 'Sign out' : 'Moderate';
+    action('more').hidden = shown >= slots;
+    action('owner').disabled = !signingConfigured;
+    action('owner').textContent = token ? 'Sign out' : ownerForm.hidden ? 'Moderate' : 'Close moderation';
   }
 
   async function refresh() {
-    if (!configured) return false;
+    if (!signingConfigured) return false;
     const current = ++requestId;
     try {
-      const rows = await store.list();
+      const rows = await signingStore.list();
       if (current !== requestId) return false;
       entries.clear();
-      for (const entry of rows) entries.set(entry.slot, entry);
+      for (const entry of rows) {
+        entries.set(entry.slot, entry);
+        showThrough(entry.slot);
+      }
       available = true;
-      notice.textContent = entries.size === slots ? 'Every square is signed.' : 'Choose an empty square.';
+      notice.textContent = entries.size === slots ? 'Every square is signed.' : 'Pick a free square to sign.';
       action('refresh').hidden = true;
     } catch {
       if (current !== requestId) return false;
@@ -132,72 +137,57 @@ export function mountSigningWall(section, store = signingStore, configured = sig
 
   function paintInk() {
     const remaining = Math.max(0, paper.ink - measure(strokes));
-    renderInk(canvas, strokes);
+    const canvas = grid.querySelector('.is-editing svg');
+    if (canvas) renderInk(canvas, strokes);
     find('.wall-ink progress').value = remaining;
     find('.wall-ink-count').textContent = remaining < 2 ? 'Out of ink' : Math.ceil(remaining / paper.ink * 100) + '% ink';
     submit.disabled = busy || !strokes.length || slot === undefined;
     action('undo').disabled = busy || !strokes.length;
     action('clear').disabled = busy || !strokes.length;
+    action('cancel').disabled = busy;
   }
 
-  function open(panel, heading, trigger) {
-    opener = trigger;
+  function endDraft() {
+    slot = pointer = undefined;
+    strokes = [];
+    form.reset();
+    form.hidden = true;
     feedback.textContent = '';
-    title.textContent = heading;
-    signForm.hidden = panel !== signForm;
-    ownerForm.hidden = panel !== ownerForm;
-    viewer.hidden = panel !== viewer;
-    dialog.showModal();
-    if (panel === ownerForm) ownerForm.elements.email.focus({ preventScroll: true });
   }
 
-  function setBusy(value) {
-    busy = value;
-    action('close').disabled = value;
-    action('remove').disabled = value;
-    ownerForm.querySelector('[type="submit"]').disabled = value;
+  function choose(index) {
+    if (busy || !available || entries.has(index)) return;
+    slot = index;
+    showThrough(index);
+    form.hidden = false;
+    find('.wall-draft-slot').textContent = 'Square ' + slotLabel(index);
+    feedback.textContent = '';
+    paintBoard();
     paintInk();
+    grid.querySelector('.is-editing').scrollIntoView({ block: 'nearest', behavior: 'instant' });
   }
 
-  pad.addEventListener('pointerdown', (event) => {
-    if (busy || pointer !== undefined || event.button !== 0 ||
-        strokes.length >= paper.strokes || measure(strokes) + paper.lift > paper.ink ||
-        strokes.reduce((n, stroke) => n + stroke.length, 0) >= paper.points) return;
+  const pointsUsed = () => strokes.reduce((n, stroke) => n + stroke.length, 0);
+  grid.addEventListener('pointerdown', (event) => {
+    const pad = event.target.closest('.is-editing .wall-paper');
+    if (!pad || busy || pointer !== undefined || event.button !== 0 || strokes.length >= paper.strokes ||
+        measure(strokes) + paper.lift > paper.ink || pointsUsed() >= paper.points) return;
     if (document.activeElement === nameInput) nameInput.blur();
-    drawingBox = canvas.getBoundingClientRect();
+    drawingBox = pad.querySelector('svg').getBoundingClientRect();
     pointer = event.pointerId;
     pad.setPointerCapture(pointer);
     strokes.push([paperPoint(event.clientX, event.clientY, drawingBox)]);
     paintInk();
   });
-  pad.addEventListener('pointermove', (event) => {
-    if (event.pointerId !== pointer || strokes.reduce((n, stroke) => n + stroke.length, 0) >= paper.points) return;
+  grid.addEventListener('pointermove', (event) => {
+    if (event.pointerId !== pointer || pointsUsed() >= paper.points) return;
     if (extend(strokes.at(-1), paperPoint(event.clientX, event.clientY, drawingBox), paper.ink - measure(strokes))) paintInk();
   });
   for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    pad.addEventListener(event, (e) => { if (e.pointerId === pointer) pointer = undefined; });
+    grid.addEventListener(event, (e) => { if (e.pointerId === pointer) pointer = undefined; });
   }
 
-  grid.addEventListener('click', (event) => {
-    const tile = event.target.closest('[data-slot]');
-    if (!tile) return;
-    slot = Number(tile.dataset.slot);
-    viewed = entries.get(slot);
-    if (viewed) {
-      renderInk(viewer.querySelector('svg'), viewed.strokes);
-      confirmDelete = false;
-      action('remove').hidden = !token;
-      action('remove').textContent = 'Delete signature';
-      open(viewer, viewed.name, tile);
-    } else if (available) {
-      strokes = [];
-      signForm.reset();
-      paintInk();
-      open(signForm, 'Sign square ' + slotLabel(slot), tile);
-    }
-  });
-
-  signForm.addEventListener('submit', async (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (busy || slot === undefined || !strokes.length) return;
     const name = nameInput.value.trim();
@@ -206,108 +196,126 @@ export function mountSigningWall(section, store = signingStore, configured = sig
       nameInput.focus();
       return;
     }
+    busy = true;
+    paintInk();
     feedback.textContent = 'Saving your signature…';
-    setBusy(true);
     try {
-      const entry = await store.sign(slot, name, strokes);
+      const entry = await signingStore.sign(slot, name, strokes);
       ++requestId;
       entries.set(entry.slot, entry);
-      paintBoard();
+      endDraft();
       notice.textContent = 'Your signature is on the wall.';
-      dialog.close();
+      grid.querySelector('[data-slot="' + entry.slot + '"]')?.scrollIntoView({ block: 'nearest' });
     } catch (error) {
       if (error.code !== '23505') {
-        feedback.textContent = 'Couldn’t save your signature. Your draft is still here.';
+        feedback.textContent = 'Couldn’t save. Your draft is still here.';
       } else if (await refresh()) {
-        slot = Array.from({ length: slots }, (_, index) => index).find((index) => !entries.has(index));
-        if (slot === undefined) feedback.textContent = 'The last square was taken. The wall is full.';
-        else {
-          sheet = Math.floor(slot / sheetSize);
-          paintBoard();
-          title.textContent = 'Sign square ' + slotLabel(slot);
-          feedback.textContent = 'Someone took that square. Your draft is in a free square. Sign again to confirm.';
+        const next = Array.from({ length: slots }, (_, index) => index).find((index) => !entries.has(index));
+        busy = false;
+        if (next === undefined) {
+          slot = undefined;
+          feedback.textContent = 'The last square was taken. The wall is full.';
+        } else {
+          choose(next);
+          feedback.textContent = 'That square was taken. Your draft moved to a free square. Save again to confirm.';
         }
-      } else feedback.textContent = 'Someone took that square. Try again when the wall reconnects.';
+      } else feedback.textContent = 'That square was taken. Try again when the wall reconnects.';
     } finally {
-      setBusy(false);
+      busy = false;
+      paintBoard();
+      paintInk();
     }
   });
 
   ownerForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (busy) return;
-    setBusy(true);
+    busy = true;
     try {
-      token = await store.login(ownerForm.elements.email.value, ownerForm.elements.password.value);
-      paintBoard();
-      notice.textContent = 'Moderation on. Select a signature to review it.';
-      dialog.close();
+      token = await signingStore.login(ownerForm.elements.email.value, ownerForm.elements.password.value);
+      ownerForm.hidden = true;
+      notice.textContent = 'Moderation on. Choose a signature to delete.';
     } catch {
-      feedback.textContent = 'Couldn’t sign in with that owner account.';
+      find('.wall-owner-status').textContent = 'Couldn’t sign in with that owner account.';
     } finally {
       ownerForm.elements.password.value = '';
-      setBusy(false);
+      busy = false;
+      paintBoard();
+      paintInk();
     }
   });
 
-  async function removeSignature() {
-    if (!token || !viewed || busy) return;
-    if (!confirmDelete) {
-      confirmDelete = true;
-      feedback.textContent = 'Delete this signature and free its square?';
-      action('remove').textContent = 'Confirm deletion';
+  async function removeSignature(id) {
+    if (!token || busy) return;
+    if (confirmed !== id) {
+      confirmed = id;
+      paintBoard();
+      grid.querySelector('[data-remove-id="' + id + '"]')?.focus({ preventScroll: true });
       return;
     }
-    setBusy(true);
+    busy = true;
+    paintBoard();
     try {
-      await store.remove(viewed.id, token);
+      await signingStore.remove(id, token);
       ++requestId;
-      entries.delete(viewed.slot);
-      paintBoard();
-      notice.textContent = 'Signature deleted. The square is available.';
-      dialog.close();
+      for (const [cell, entry] of entries) if (entry.id === id) entries.delete(cell);
+      notice.textContent = 'Signature deleted. Its square is available.';
     } catch {
-      feedback.textContent = 'Couldn’t delete this signature. Refresh the wall or sign in again.';
+      notice.textContent = 'Couldn’t delete. Refresh the wall or sign in again.';
     } finally {
-      setBusy(false);
+      confirmed = undefined;
+      busy = false;
+      paintBoard();
     }
   }
 
   section.addEventListener('click', (event) => {
-    const command = event.target.closest('[data-wall-action]')?.dataset.wallAction;
-    if (command === 'previous' || command === 'next') {
-      sheet += command === 'next' ? 1 : -1;
+    const target = event.target.closest('button');
+    if (!target) return;
+    if (target.dataset.slot !== undefined) choose(Number(target.dataset.slot));
+    if (target.dataset.removeId) void removeSignature(target.dataset.removeId);
+    const command = target.dataset.wallAction;
+    if (command === 'more') {
+      const next = shown;
+      shown = Math.min(slots, shown + rowBatch);
       paintBoard();
+      grid.querySelector('[data-slot="' + next + '"]')?.scrollIntoView({ block: 'nearest' });
     } else if (command === 'refresh') void refresh();
     else if (command === 'undo' || command === 'clear') {
       if (command === 'undo') strokes.pop();
       else strokes = [];
       pointer = undefined;
       paintInk();
+    } else if (command === 'cancel') {
+      const previous = slot;
+      endDraft();
+      paintBoard();
+      grid.querySelector('button[data-slot="' + previous + '"]')?.focus({ preventScroll: true });
     } else if (command === 'owner') {
       if (token) {
-        token = undefined;
-        paintBoard();
+        token = confirmed = undefined;
         notice.textContent = 'Signed out of moderation.';
-      } else open(ownerForm, 'Wall moderation', action('owner'));
-    } else if (command === 'remove') void removeSignature();
-    else if (command === 'close' && !busy) dialog.close();
-  });
-  dialog.addEventListener('cancel', (event) => { if (busy) event.preventDefault(); });
-  dialog.addEventListener('close', () => {
-    pointer = undefined;
-    const cell = opener?.dataset.slot;
-    if (cell !== undefined) grid.querySelector('[data-slot="' + cell + '"]')?.focus({ preventScroll: true });
-    else opener?.focus({ preventScroll: true });
+      } else {
+        ownerForm.hidden = !ownerForm.hidden;
+        find('.wall-owner-status').textContent = '';
+        if (!ownerForm.hidden) ownerForm.elements.email.focus();
+      }
+      paintBoard();
+    }
   });
 
   paintBoard();
-  notice.textContent = configured ? 'Loading the wall…' : 'The shared wall is awaiting setup.';
-  if (configured) {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) void refresh();
-    });
-    observer.observe(section);
-    window.addEventListener('focus', () => { if (!busy) void refresh(); });
+  notice.textContent = signingConfigured ? 'Loading the wall…' : 'The shared wall is awaiting setup.';
+  if (signingConfigured) {
+    const root = document.documentElement;
+    const loadIfReady = () => {
+      if (nearWall && !root.classList.contains('is-building') && !busy && slot === undefined) void refresh();
+    };
+    new IntersectionObserver(([entry]) => {
+      nearWall = entry.isIntersecting;
+      loadIfReady();
+    }).observe(section);
+    new MutationObserver(loadIfReady).observe(root, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('focus', loadIfReady);
   }
 }

@@ -10,7 +10,7 @@
   gap: 12px 24px;
   min-height: 54px;
 }
-.wall-legend, .wall-slot-number, .wall-count, .wall-sheet {
+.wall-legend, .wall-slot-number, .wall-count, .wall-draft-slot {
   font: .74rem/1.3 Consolas, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: .08em;
@@ -24,8 +24,9 @@
   background: var(--wall-line);
 }
 .wall-tile {
+  position: relative;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 5px;
   align-items: center;
   text-align: left;
@@ -36,13 +37,13 @@
   background: var(--wall-surface);
   color: var(--paper);
   font: inherit;
-  cursor: pointer;
-  touch-action: manipulation;
   transition: background 160ms;
 }
+button.wall-tile { cursor: pointer; touch-action: manipulation; }
 .wall-tile:disabled { cursor: default; color: var(--muted); }
-.wall-tile:not(:disabled):hover { background: color-mix(in srgb, var(--paper) 9%, var(--ink)); }
+button.wall-tile:not(:disabled):hover { background: color-mix(in srgb, var(--paper) 9%, var(--ink)); }
 .wall-tile.is-signed { background: var(--ink); }
+.wall-tile.is-editing { box-shadow: inset 0 0 0 2px var(--accent); scroll-margin-top: 165px; }
 .wall-tile:focus-visible { position: relative; outline-offset: -3px !important; }
 .wall-slot-number { color: var(--muted); }
 .wall-plus { justify-self: center; color: var(--accent); font-weight: 400; font-size: clamp(1.2rem, 2.6vw, 2.3rem); line-height: 1; }
@@ -53,8 +54,8 @@
 .wall-tile svg circle, .wall-paper circle { fill: currentColor; }
 .wall-foot { padding-top: 9px; font-size: .85rem; }
 .wall-status { flex: 1; min-width: 14ch; color: var(--muted); }
-.wall-pager, .wall-tools { display: flex; align-items: center; gap: 10px; }
-.wall-foot button, .signing-dialog button {
+.wall-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.wall-foot button, .wall-sign-form button, .wall-owner-form button, .wall-tile .wall-remove {
   min-height: 44px;
   min-width: 44px;
   border: 0;
@@ -66,25 +67,21 @@
   cursor: pointer;
   touch-action: manipulation;
 }
-.wall-foot button:disabled, .signing-dialog button:disabled { opacity: .4; cursor: default; }
-.signing-dialog {
-  width: min(560px, calc(100% - 24px));
-  max-height: calc(100dvh - 24px);
-  border: 1px solid var(--rule);
-  border-radius: 5px;
-  padding: clamp(14px, 3vw, 26px);
+.signing-wall button:disabled { opacity: .45; cursor: default; }
+.wall-sign-form {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  padding: 10px clamp(8px, 2vw, 20px);
   background: var(--ink);
-  color: var(--paper);
-  overscroll-behavior: contain;
+  box-shadow: 0 1px var(--wall-line);
 }
-.signing-dialog::backdrop { background: #000a; }
-html:has(.signing-dialog[open]) { overflow: hidden; }
-.signing-dialog > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-.signing-dialog h3 { font-size: clamp(1.35rem, 4.5vw, 2.4rem); letter-spacing: -.045em; line-height: 1.1; overflow-wrap: anywhere; }
-.signing-dialog label { display: grid; gap: 4px; color: var(--muted); font-size: .88rem; margin-bottom: 12px; }
-.signing-dialog input {
+.wall-draft-top { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(110px, .65fr); align-items: center; gap: 10px 22px; }
+.wall-draft-slot { color: var(--accent); }
+.wall-sign-form label, .wall-owner-form label { display: grid; gap: 3px; color: var(--muted); font-size: .8rem; margin-bottom: 8px; }
+.wall-sign-form input, .wall-owner-form input {
   width: 100%;
-  padding: 10px;
+  padding: 7px 9px;
   border: 1px solid var(--rule);
   border-radius: 3px;
   background: color-mix(in srgb, var(--paper) 5%, var(--ink));
@@ -93,24 +90,30 @@ html:has(.signing-dialog[open]) { overflow: hidden; }
   font-size: 1rem;
 }
 .wall-paper {
-  aspect-ratio: 16 / 9;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
   overflow: hidden;
-  outline: 1px solid var(--rule);
   color: var(--paper);
   background: radial-gradient(circle, color-mix(in srgb, var(--paper) 14%, var(--ink)) 1px, transparent 1px) 0 0 / 12px 12px;
 }
 .wall-paper svg { display: block; width: 100%; height: 100%; }
-.wall-sign-form .wall-paper { touch-action: none; user-select: none; cursor: crosshair; }
-.wall-ink { display: flex; align-items: center; gap: 12px; margin-block: 12px; font: .76rem/1.3 Consolas, monospace; }
+.wall-paper { touch-action: none; user-select: none; cursor: crosshair; }
+.wall-ink { display: flex; align-items: center; gap: 8px; font: .73rem/1.3 Consolas, monospace; }
 .wall-ink progress { flex: 1; min-width: 0; height: 9px; accent-color: var(--accent); }
-.signing-dialog .wall-primary { background: var(--paper); color: var(--ink); font-weight: 600; }
+.signing-wall .wall-primary { background: var(--paper); color: var(--ink); font-weight: 600; }
 .wall-tools .wall-primary { margin-left: auto; }
-.wall-remove { margin-top: 14px; }
-.wall-dialog-status { color: var(--muted); font-size: .9rem; margin-top: 12px !important; }
-.wall-dialog-status:empty { display: none; }
+.wall-tile .wall-remove { position: absolute; top: 3px; right: 3px; font-size: .75rem; }
+.wall-owner-form { max-width: 400px; margin: 18px 0; }
+.wall-draft-status, .wall-owner-status { color: var(--muted); font-size: .84rem; margin-top: 8px !important; }
+.wall-draft-status:empty, .wall-owner-status:empty { display: none; }
 
 @media (max-width: 900px) { .wall-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 580px) {
   .wall-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wall-status { flex-basis: 100%; }
+  .wall-draft-top { grid-template-columns: 1fr 1fr; gap: 4px 9px; }
+  .wall-draft-top label { grid-column: 1 / -1; grid-row: 2; }
+  .wall-tools { font-size: .82rem; }
+  .wall-tools button { padding-inline: 8px; }
 }
