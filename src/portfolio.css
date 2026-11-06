@@ -265,7 +265,8 @@ html.is-building { overflow: hidden; overflow-anchor: none; }
 @keyframes build-caret-blink { 0%, 68% { opacity: 1; } 69%, 100% { opacity: 0; } }
 .build-worker { position: absolute; top: 0; left: 0; z-index: 2; display: flex; align-items: start; gap: 3px; color: var(--worker); will-change: transform; }
 .build-worker svg { width: 24px; height: 24px; overflow: visible; filter: drop-shadow(0 2px 3px #0008); }
-.build-worker span { margin-top: 16px; background: var(--worker); color: #0b0b0b; font: 600 11px/1 'DM Sans', sans-serif; padding: 5px 7px; }
+.build-worker span { margin-top: 16px; background: var(--worker); color: #0b0b0b; font: 600 11px/1 'DM Sans', sans-serif; padding: 5px 7px; white-space: nowrap; }
+.build-worker.label-left span { position: absolute; right: calc(100% + 3px); }
 .build-worker.is-grabbing svg { scale: .88; }
 .build-selection {
   position: absolute;

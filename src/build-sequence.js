@@ -38,16 +38,22 @@ function animate(duration, render, signal, clock) {
 }
 
 const roles = [
-  { name: 'ChatGPT', color: '#d9f959', station: [.14, .29], delay: .02, arc: -32 },
-  { name: 'Claude', color: '#fbb8dc', station: [.68, .65], delay: .1, arc: 42 },
-  { name: 'Grok', color: '#95d5ff', station: [.70, .16], delay: 0, arc: -20 },
-  { name: 'me!!', color: '#ffab73', station: [.38, .52], delay: .05, arc: 28 },
-  { name: 'Gemini', color: '#c6b2ff', station: [.36, .14], delay: .08, arc: -45 },
+  { name: 'ChatGPT', color: '#d9f959', station: [.14, .29], entrance: [-.23, .30], delay: .02, arc: -32 },
+  { name: 'Claude', color: '#fbb8dc', station: [.68, .65], entrance: [.67, -.12], delay: .1, arc: 42 },
+  { name: 'Grok', color: '#95d5ff', station: [.70, .16], entrance: [1.10, .18], delay: 0, arc: -20 },
+  { name: 'me!!', color: '#ffab73', station: [.38, .52], entrance: [1.13, .65], delay: .05, arc: 28 },
+  { name: 'Gemini', color: '#c6b2ff', station: [.36, .14], entrance: [.36, 1.12], delay: .08, arc: -45 },
 ];
 const viewportWidth = () => document.documentElement.clientWidth;
 const pageTop = (node) => node.getBoundingClientRect().top + scrollY;
 const rush = (t) => { t = clamp(t); return t < .5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2; };
 const clickTime = 100;
+const pickupRoutes = {
+  media: [[-1, -.30], [.42, 1], [1, -.25], [-.45, -1]],
+  skill: [[-.8, -.75], [.65, .95], [.9, -.75], [-.65, .9]],
+  link: [[.9, -.15], [-.82, .12], [.35, -.85], [-.32, .7]],
+  box: [[.75, -.36], [-.70, .5], [.22, .94], [-.4, -.82]],
+};
 
 function worker(layer, role) {
   const outline = document.createElement('div');
@@ -64,17 +70,21 @@ function worker(layer, role) {
   caret.hidden = true;
   const typo = document.createElement('span');
   caret.append(typo);
+  const x = viewportWidth() * role.entrance[0];
+  const y = innerHeight * role.entrance[1];
+  node.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
   layer.append(outline, caret, node);
   return {
-    role, outline, caret, typo, x: -110, y: innerHeight * role.station[1],
+    role, outline, caret, typo, x, y,
     put(x, y, holding = false) {
       this.x = x;
       this.y = y;
       node.classList.toggle('is-grabbing', holding);
+      node.classList.toggle('label-left', x > viewportWidth() - 88);
       node.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
     },
     hover(x, y, holding = false) {
-      this.put(clamp(x, 7, viewportWidth() - 86), clamp(y, 9, innerHeight - 70), holding);
+      this.put(clamp(x, 7, viewportWidth() - 24), clamp(y, 9, innerHeight - 64), holding);
     },
     select(rect, x, y, opacity) {
       const left = clamp(rect.left + x - 6, 0, viewportWidth());
@@ -91,20 +101,24 @@ function worker(layer, role) {
   };
 }
 
-function prepare(scene, typing) {
+function prepare(scene, typing, sceneIndex) {
   const targets = [...scene.querySelectorAll('[data-part], .portrait')].filter((target) => {
     const disclosure = target.closest('details:not([open])');
     return !disclosure || disclosure === target;
   });
+  const counts = new Map();
   const pieces = targets.map((target) => {
     const kind = target.dataset.part || 'media';
+    const order = counts.get(kind) ?? 0;
+    counts.set(kind, order + 1);
     const preferred = kind === 'frame' ? 1 : kind === 'link' ? 2 : kind === 'media' ? 3
       : kind === 'skill' || target.closest('.timeline-list') ? 4 : kind === 'box' ? 1 : 0;
-    const placement = kind === 'skill' ? 225 : kind === 'frame' ? 460
+    const basePlacement = kind === 'skill' ? 225 : kind === 'frame' ? 460
       : kind === 'media' || kind === 'box' ? 495 : 260;
+    const placement = basePlacement * (.88 + (order * 3 % 5) * .065);
     target.classList.add('build-piece');
     target.dataset.buildState = 'waiting';
-    return { target, kind, preferred, placement, tracks: typing.prepare(target), x: 0, y: 0 };
+    return { target, kind, order, route: order + sceneIndex, preferred, placement, tracks: typing.prepare(target), x: 0, y: 0 };
   });
   const lookup = new Map(pieces.map((piece) => [piece.target, piece]));
   for (const piece of pieces) {
@@ -138,43 +152,49 @@ function pieceRect(piece) {
   };
 }
 
-function grab(actor, piece, time, index) {
-  const delay = actor.role.delay + (index % 2) * .035;
+function pickupOffset(piece, rect) {
+  const width = viewportWidth();
+  const height = innerHeight;
+  const timeline = piece.target.closest('.timeline-year');
+  const routes = pickupRoutes[piece.kind] ?? pickupRoutes.box;
+  const [across, down] = routes[piece.route % routes.length];
+  const media = piece.kind === 'media';
+  const reach = Math.min(media ? 225 : 112, width * (media ? .26 : .19));
+  const drop = Math.min(media ? 150 : 75, height * (media ? .19 : .12));
+  return {
+    x: clamp(across * reach, Math.min(0, 26 - rect.right), Math.max(0, width - 26 - rect.left)),
+    y: timeline ? 0 : clamp(down * drop, Math.min(0, 24 - rect.bottom), Math.max(0, height - 54 - rect.top)),
+    bend: timeline ? 0 : Math.sign(across) * (media ? 30 : 13),
+  };
+}
+
+function grab(actor, piece, time, from) {
+  const delay = actor.role.delay + (piece.order % 3) * .023;
   const t = clamp((time - delay) / (1 - delay));
   const rect = pieceRect(piece);
   const width = viewportWidth();
   const height = innerHeight;
   const portrait = piece.target.matches('.portrait');
-  const timeline = piece.target.closest('.timeline-year');
-  if (!piece.source) {
-    const room = Math.max(0, width - rect.right - 24);
-    const year = timeline && piece.target.matches('strong');
-    const distance = year ? 19 : width * (piece.kind === 'link' ? .16 : .12);
-    piece.source = {
-      x: portrait ? Math.min(180, width * .15) : Math.min(room, distance),
-      // Timeline text has dedicated baselines. Drag along each line so nearby
-      // entries cannot travel through each other.
-      y: timeline ? 0 : Math.min(portrait ? 105 : 78, height * .12),
-      actorX: actor.x, actorY: actor.y,
-    };
-  }
-  const source = piece.source;
-  const lift = ease((t - .20) / .12);
-  const travel = rush((t - .33) / .52);
-  const arc = timeline ? 0 : Math.sin(travel * Math.PI) * Math.min(36, height * .06);
-  const x = source.x * (1 - travel);
-  const y = source.y * (1 - travel) - arc;
+  const source = piece.source ??= pickupOffset(piece, rect);
+  const pickup = piece.kind === 'media' ? .31 : .24;
+  const dropAt = piece.kind === 'skill' ? .78 : .88;
+  const lift = ease((t - pickup * .77) / .12);
+  const travel = ease((t - pickup) / (dropAt - pickup));
+  const bend = Math.sin(travel * Math.PI) * source.bend;
+  const x = source.x * (1 - travel) + bend * .52;
+  const y = source.y * (1 - travel) - bend;
   const anchorX = rect.left + Math.min(rect.width * (portrait ? .34 : .20), 120);
   const anchorY = rect.top + Math.min(rect.height * (portrait ? .50 : .36), portrait ? 230 : 64);
-  const approach = ease(t / .28);
-  const release = ease((t - .87) / .13);
-  const swoop = Math.sin(approach * Math.PI) * actor.role.arc;
-  const cursorX = mix(mix(source.actorX, anchorX + x, approach) + swoop * .58, anchorX + 26, release);
-  const cursorY = mix(mix(source.actorY, anchorY + y, approach) + swoop, anchorY + 22, release);
-  actor.hover(cursorX, cursorY, t > .27 && t < .87);
+  const approach = ease(t / pickup);
+  const release = ease((t - dropAt) / (1 - dropAt));
+  const swoop = Math.sin(approach * Math.PI) * actor.role.arc * .66;
+  const cursorX = mix(mix(from.x, clamp(anchorX + x, 7, width - 24), approach) + swoop * .58, anchorX + 16, release);
+  const cursorY = mix(mix(from.y, clamp(anchorY + y, 9, height - 64), approach) + swoop, anchorY + 13, release);
+  if (t < pickup) actor.put(cursorX, cursorY);
+  else actor.hover(cursorX, cursorY, t < dropAt);
 
-  if (t >= .20) {
-    piece.target.dataset.buildState = t >= .87 ? 'placed' : 'dragging';
+  if (t >= pickup * .77) {
+    piece.target.dataset.buildState = t >= dropAt ? 'placed' : 'dragging';
     offset(piece, x, y, lift);
   }
   actor.select(rect, x, y, lift * (1 - release));
@@ -219,8 +239,8 @@ function groupByView(scene, pieces) {
 }
 
 const sceneTimes = {
-  home: 4000, work: 5000, creative: 2800, about: 3600,
-  achievements: 4000, timeline: 3500, skills: 3800, contact: 2600,
+  home: 5600, work: 8600, creative: 4200, about: 5500,
+  achievements: 6800, timeline: 5400, skills: 5600, contact: 3600,
 };
 
 function planJobs(pieces, actors) {
@@ -272,10 +292,22 @@ function drawFrame(actor, piece, t, from) {
   const rect = pieceRect(piece);
   const approach = ease(t / .26);
   const growth = ease((t - .22) / .72);
-  const right = mix(rect.left + 1, rect.right, growth);
+  const reverse = piece.order % 2 === 1;
+  const startX = reverse ? rect.right - 1 : rect.left + 1;
+  const endX = mix(startX, reverse ? rect.left : rect.right, growth);
   const bottom = mix(rect.top + 1, rect.bottom, growth);
-  actor.hover(mix(from.x, right, approach), mix(from.y, bottom, approach), t > .22);
-  actor.select({ ...rect, right, bottom }, 0, 0, ease(t / .22));
+  actor.hover(mix(from.x, endX, approach), mix(from.y, bottom, approach), t > .22);
+  actor.select({ ...rect, left: reverse ? endX : rect.left, right: reverse ? rect.right : endX, bottom }, 0, 0, ease(t / .22));
+}
+
+function setTypeArea(actor, piece, t, from) {
+  const rect = pieceRect(piece);
+  const p = ease(t / .8);
+  const arc = Math.sin(p * Math.PI) * actor.role.arc * .65;
+  const x = clamp(rect.left + 8, 7, viewportWidth() - 24);
+  const y = clamp(rect.top + 6, 9, innerHeight - 64);
+  actor.put(mix(from.x, x, p) + arc, mix(from.y, y, p) - Math.abs(arc), t > .64 && t < .83);
+  if (t > .78 && piece.target.dataset.buildState !== 'placed') place(piece);
 }
 
 function paintText(actor, job, time, typing) {
@@ -332,8 +364,8 @@ function planBuild(scenes, actors, rail, home) {
       const top = clamp(batch.top, home, limit);
       const left = batch.photo ? clamp(batch.photo.offsetLeft, 0, railLimit) : previous.rail;
       const travel = Math.abs(top - previous.top) > 8 || Math.abs(left - previous.rail) > 8
-        ? Math.min(360, slot * .32) : 0;
-      const lead = travel ? Math.min(100, duration * .12) : 0;
+        ? Math.min(540, slot * .34) : 0;
+      const lead = travel ? Math.min(130, duration * .12) : 0;
       camera.push({ start: duration - lead, end: duration + travel, from: previous, top, rail: left });
 
       const scale = (slot - travel) / Math.max(1, batch.duration);
@@ -373,7 +405,10 @@ async function assemble(scenes, actors, rail, home, signal, clock, typing) {
         if (time < approach) return;
         const rect = pieceRect(job.piece);
         const p = ease((time - approach) / (job.start - approach));
-        actor.hover(mix(job.from.x, rect.left + 18, p), mix(job.from.y, rect.top - 22, p));
+        const pickup = !job.tracks && pickupRoutes[job.piece.kind] ? pickupOffset(job.piece, rect) : { x: 0, y: 0 };
+        const x = clamp(rect.left + pickup.x + 18, 7, viewportWidth() - 24);
+        const y = clamp(rect.top + pickup.y - 22, 9, innerHeight - 64);
+        actor.put(mix(job.from.x, x, p), mix(job.from.y, y, p));
         return;
       }
       if (!job.active) {
@@ -383,7 +418,8 @@ async function assemble(scenes, actors, rail, home, signal, clock, typing) {
       const p = clamp((time - job.start) / (job.end - job.start));
       if (job.tracks) paintText(actor, job, p * job.duration, typing);
       else if (job.piece.kind === 'frame') drawFrame(actor, job.piece, p, job.from);
-      else grab(actor, job.piece, p, indices[lane]);
+      else if (job.piece.kind === 'copy' || job.piece.kind === 'type') setTypeArea(actor, job.piece, p, job.from);
+      else grab(actor, job.piece, p, job.from);
     });
   }, signal, clock);
 }
@@ -502,7 +538,8 @@ export function createBuildSequence(portfolio, preference) {
     const typing = createTyping();
     const rail = portfolio.querySelector('.wins-rail');
     document.documentElement.classList.add('is-building');
-    const scenes = [...portfolio.querySelectorAll('[data-scene]')].map((scene) => ({ scene, pieces: prepare(scene, typing) }));
+    const scenes = [...portfolio.querySelectorAll('[data-scene]')]
+      .map((scene, index) => ({ scene, pieces: prepare(scene, typing, index) }));
     state = { pieces: scenes.flatMap(({pieces}) => pieces), layer, controls, cleanup, typing, rail };
     const actors = roles.map((role) => worker(layer, role));
     portfolio.inert = true;
