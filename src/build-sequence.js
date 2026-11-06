@@ -22,14 +22,15 @@ function animate(duration, render, signal, clock) {
       elapsed += delta + boosted * 1.5;
       previous = now;
       const t = clamp(elapsed / duration);
+      let keepGoing;
       try {
-        render(t);
+        keepGoing = render(t);
       } catch (error) {
         signal.removeEventListener('abort', settle);
         reject(error);
         return;
       }
-      if (t < 1) frame = requestAnimationFrame(step);
+      if (t < 1 && keepGoing !== false) frame = requestAnimationFrame(step);
       else settle();
     }
     signal.addEventListener('abort', settle, { once: true });
@@ -76,6 +77,10 @@ function worker(layer, role) {
     hover(x, y, holding = false) {
       this.put(clamp(x, 7, viewportWidth() - 86), clamp(y, 9, innerHeight - 70), holding);
     },
+    check(active) {
+      outline.classList.toggle('is-checking', active);
+      if (!active) outline.hidden = true;
+    },
     select(rect, x, y, opacity) {
       const left = clamp(rect.left + x - 6, 0, viewportWidth());
       const right = clamp(rect.right + x + 6, 0, viewportWidth());
@@ -104,7 +109,7 @@ function prepare(scene, typing) {
     const placement = target.matches('.portrait') ? 1250 : part === 'box' ? 850 : 510;
     return {
       target, lane, x: 0, y: 0, source: null, tracks, placement,
-      duration: placement + tracks.reduce((total, track) => total + track.duration + clickTime, 0),
+      duration: placement + tracks.reduce((total, track) => total + (track.start ? 0 : track.duration + clickTime), 0),
     };
   });
 }
@@ -226,39 +231,109 @@ function distribute(pieces, actors) {
   return queues;
 }
 
+async function typeTrack(actor, track, typing, signal, clock) {
+  const from = { x: actor.x, y: actor.y };
+  const rect = track.node.parentElement.getBoundingClientRect();
+  const start = document.createRange();
+  start.setStart(track.node, track.start);
+  start.collapse(true);
+  const line = start.getBoundingClientRect();
+  const clickX = (line.height ? line.left : rect.left) + 5;
+  const clickY = (line.height ? line.top : rect.top) + 4;
+  let previous = clickTime;
+  await animate(track.duration + clickTime, (t) => {
+    const elapsed = t * (track.duration + clickTime);
+    if (elapsed <= clickTime) {
+      const p = ease(elapsed / clickTime);
+      actor.hover(mix(from.x, clickX, p), mix(from.y, clickY, p), p > .72);
+      return;
+    }
+    const writingTime = elapsed - clickTime;
+    const caret = typing.type(track, writingTime, actor);
+    const top = caret?.height ? caret.top : rect.top;
+    const bottom = caret?.height ? caret.bottom : rect.bottom;
+    const sweep = Math.sin(writingTime / 370) * Math.min(38, rect.width * .22);
+    const x = mix(clickX, caret?.height ? caret.left : clickX, .55) + sweep;
+    const y = (top > 54 ? top - 47 : bottom + 10) + Math.cos(writingTime / 245) * 5;
+    // Glide around the active line while the caret follows individual letters.
+    const follow = 1 - Math.exp(-(elapsed - previous) / 95);
+    actor.hover(mix(actor.x, x, follow), mix(actor.y, y, follow));
+    previous = elapsed;
+  }, signal, clock);
+  actor.caret.hidden = true;
+  if (!signal.aborted) typing.reveal(track);
+}
+
+function inspectEdge(actor, piece, lane, pass, signal, clock, hasWork) {
+  const rect = pieceRect(piece);
+  const from = { x: actor.x, y: actor.y };
+  const width = viewportWidth();
+  const height = innerHeight;
+  const right = clamp(rect.right + 9, 80, width - 86);
+  const left = clamp(rect.left - 9, 8, right - 68);
+  const bottom = clamp(rect.bottom + 13, 75, height - 72);
+  const top = clamp(rect.top - 17, 10, bottom - 60);
+  const edge = (lane + pass) % 4;
+  const vertical = edge % 2 === 1;
+  const reverse = edge > 1;
+  const span = vertical ? bottom - top : right - left;
+  actor.check(true);
+  return animate(940 + lane * 75, (t) => {
+    if (hasWork()) return false;
+    const approach = ease(t / .31);
+    const progress = clamp((t - .23) / .77);
+    const along = reverse ? 1 - progress : progress;
+    const x = vertical ? (edge === 1 ? right : left) : left + span * along;
+    const y = vertical ? top + span * along : (edge === 0 ? top : bottom);
+    const arc = Math.sin(Math.PI * approach) * 25;
+    actor.hover(mix(from.x, x, approach) + arc, mix(from.y, y, approach) - arc, t > .27);
+    const trail = Math.min(span * progress, 78);
+    const guide = vertical
+      ? { left: x + 5, right: x + 5, top: reverse ? y : y - trail, bottom: reverse ? y + trail : y }
+      : { left: reverse ? x : x - trail, right: reverse ? x + trail : x, top: y + 4, bottom: y + 4 };
+    actor.select(guide, 0, 0, .76 * ease((t - .25) / .25));
+  }, signal, clock).finally(() => actor.check(false));
+}
+
 async function assemble(batch, actors, signal, clock, typing) {
   const queues = distribute(batch.pieces, actors);
+  const handoffs = [];
+  let running = 0;
+  const hasWork = () => !running || handoffs.length > 0 || queues.some(({items}) => items.length);
   await Promise.all(queues.map(async ({actor, items}, lane) => {
-    for (const [index, piece] of items.entries()) {
-      await animate(piece.placement, (t) => grab(actor, piece, t, index), signal, clock);
-      if (signal.aborted) return;
-      place(piece);
-      actor.outline.hidden = true;
-      for (const track of piece.tracks) {
-        const from = { x: actor.x, y: actor.y };
-        const rect = track.node.parentElement.getBoundingClientRect();
-        const clickX = rect.left + 5;
-        const clickY = rect.top + 4;
-        const perchY = rect.top > 52 ? rect.top - 40 : rect.bottom + 5;
-        await animate(track.duration + clickTime, (t) => {
-          const elapsed = t * (track.duration + clickTime);
-          if (elapsed <= clickTime) {
-            const p = ease(elapsed / clickTime);
-            actor.hover(mix(from.x, clickX, p), mix(from.y, clickY, p), p > .72);
-          } else {
-            const stepBack = ease((elapsed - clickTime) / 190);
-            actor.hover(clickX - stepBack * 8, mix(clickY, perchY, stepBack));
-            typing.type(track, elapsed - clickTime, actor);
-          }
-        }, signal, clock);
-        actor.caret.hidden = true;
+    let pass = 0;
+    let index = 0;
+    while (!signal.aborted) {
+      const track = !items.length && handoffs.shift();
+      const piece = !track && (items.shift() ?? queues.find((queue) => queue.items.length)?.items.shift());
+      if (!track && !piece) {
+        if (!running) break;
+        const placed = batch.pieces.filter(({target}) => target.dataset.buildState === 'placed');
+        const candidates = placed.length ? placed : batch.pieces;
+        const target = candidates[(lane + pass) % candidates.length];
+        await inspectEdge(actor, target, lane, pass++, signal, clock, hasWork);
+        continue;
+      }
+      running++;
+      try {
+        if (track) {
+          await typeTrack(actor, track, typing, signal, clock);
+          continue;
+        }
+        const jobIndex = index++;
+        await animate(piece.placement, (t) => grab(actor, piece, t, jobIndex), signal, clock);
         if (signal.aborted) return;
-        typing.reveal(track);
+        place(piece);
+        actor.outline.hidden = true;
+        handoffs.push(...piece.tracks.filter((section) => section.start > 0));
+        for (const section of piece.tracks) {
+          if (signal.aborted) return;
+          if (section.start === 0) await typeTrack(actor, section, typing, signal, clock);
+        }
+      } finally {
+        running--;
       }
     }
-    if (signal.aborted) return;
-    const from = { x: actor.x, y: actor.y };
-    await animate(items.length ? 320 : 580, (t) => restRoute(actor, from, t, lane), signal, clock);
   }));
 }
 
@@ -281,19 +356,20 @@ async function drawSignature(layer, actors, signal) {
     });
   });
   const origins = actors.map(({x, y}) => ({x, y}));
-  await animate(5000, (t) => {
+  await animate(5600, (t) => {
     layer.style.setProperty('--build-dim', ease(t * 10));
     const matrix = svg.getScreenCTM();
-    const time = t * 5000;
+    const time = t * 5600;
     routes.forEach((route, index) => {
       let point = new DOMPoint(origins[index].x, origins[index].y);
-      let previousEnd = Math.max(0, route[0].start - 650);
+      let previousEnd = 0;
       let drawing = false;
       for (const stroke of route) {
         if (time < stroke.start) {
           const next = stroke.path.getPointAtLength(0).matrixTransform(matrix);
           const p = ease((time - previousEnd) / (stroke.start - previousEnd));
-          point = new DOMPoint(mix(point.x, next.x, p), mix(point.y, next.y, p));
+          const arc = Math.sin(Math.PI * p) * actors[index].role.arc;
+          point = new DOMPoint(mix(point.x, next.x, p) + arc, mix(point.y, next.y, p) - arc * .65);
           break;
         }
         const progress = clamp((time - stroke.start) / (stroke.end - stroke.start));
@@ -306,13 +382,13 @@ async function drawSignature(layer, actors, signal) {
         }
         previousEnd = stroke.end;
       }
-      const finished = ease((time - route.at(-1).end) / 500);
+      const finished = ease((time - route.at(-1).end) / (5600 - route.at(-1).end));
       const [x, y] = actors[index].role.station;
-      actors[index].put(mix(point.x, viewportWidth() * x, finished),
-        mix(point.y, innerHeight * y, finished), drawing);
+      const arc = Math.sin(Math.PI * finished) * actors[index].role.arc;
+      actors[index].put(mix(point.x, viewportWidth() * x, finished) + arc,
+        mix(point.y, innerHeight * y, finished) + arc * .7, drawing);
     });
   }, signal);
-  if (!signal.aborted) await animate(600, () => {}, signal);
   return svg;
 }
 

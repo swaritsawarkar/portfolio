@@ -10,16 +10,17 @@ function rangeFor(node, start, end = start) {
   return range;
 }
 
-function makeTrack(node, index) {
+function makeTrack(node, index, start, limit) {
+  const content = node.data.slice(start, limit);
   const characters = segmenter
-    ? Array.from(segmenter.segment(node.data), ({segment}) => segment)
-    : Array.from(node.data);
-  const word = /\p{L}{4,}/u.exec(node.data.slice(Math.floor(node.length * .25)));
-  const editAt = word ? Math.floor(node.length * .25) + word.index : -1;
+    ? Array.from(segmenter.segment(content), ({segment}) => segment)
+    : Array.from(content);
+  const word = /\p{L}{4,}/u.exec(content.slice(Math.floor(content.length * .25)));
+  const editAt = word ? start + Math.floor(content.length * .25) + word.index : -1;
   const wrongLetter = word?.[0][0].toLowerCase() === 'x' ? 'z' : 'x';
-  const events = [{ time: 0, end: 0 }];
+  const events = [{ time: 0, end: start }];
   let time = 45;
-  let end = 0;
+  let end = start;
   let edit = index % 5;
   characters.forEach((char, i) => {
     if (end >= editAt && editAt >= 0 && edit === 0) {
@@ -47,7 +48,18 @@ function makeTrack(node, index) {
       edit = -1;
     }
   });
-  return { node, events, duration: time + 100, hidden: rangeFor(node, 0, node.length), current: -1 };
+  return { node, start, limit, events, duration: time + 100, hidden: rangeFor(node, start, limit), current: -1 };
+}
+
+function sections(text) {
+  const starts = [0];
+  if (text.length >= 165) {
+    for (const match of text.matchAll(/[.!?]\s+(?=[A-Z])/g)) {
+      const next = match.index + match[0].length;
+      if (next - starts.at(-1) >= 52 && text.length - next >= 45) starts.push(next);
+    }
+  }
+  return starts.map((start, index) => [start, starts[index + 1] ?? text.length]);
 }
 
 function textNodes(element) {
@@ -80,30 +92,30 @@ export function createTyping() {
   return {
     prepare(element) {
       if (!pending) return [];
-      return textNodes(element).map((node) => {
-        const track = makeTrack(node, count++);
+      return textNodes(element).flatMap((node) => sections(node.data).map(([start, end]) => {
+        const track = makeTrack(node, count++, start, end);
         pending.add(track.hidden);
         return track;
-      });
+      }));
     },
     type(track, elapsed, pen) {
       let index = track.current;
       while (track.events[index + 1]?.time <= elapsed) index++;
       const layout = innerWidth + ':' + innerHeight;
-      if (track.current === index && track.layout === layout && !pen.caret.hidden) return;
+      if (track.current === index && track.layout === layout && !pen.caret.hidden) return track.caret;
       track.current = index;
       track.layout = layout;
       const event = track.events[Math.max(index, 0)];
       pending.delete(track.hidden);
       track.hidden.setStart(track.node, event.end);
-      if (event.end < track.node.length) pending.add(track.hidden);
+      if (event.end < track.limit) pending.add(track.hidden);
       if (track.selection) selected.delete(track.selection);
       track.selection = event.selection === undefined ? null : rangeFor(track.node, event.selection, event.end);
       if (track.selection) selected.add(track.selection);
 
-      const caret = rangeFor(track.node, event.end).getBoundingClientRect();
+      const caret = track.caret = rangeFor(track.node, event.end).getBoundingClientRect();
       pen.caret.hidden = !caret.height;
-      if (!caret.height) return;
+      if (!caret.height) return caret;
       const style = getComputedStyle(track.node.parentElement);
       pen.typo.textContent = event.typo || '';
       pen.typo.style.font = style.font;
@@ -111,6 +123,7 @@ export function createTyping() {
       pen.typo.style.lineHeight = '1';
       pen.caret.style.height = caret.height + 'px';
       pen.caret.style.transform = 'translate3d(' + caret.left + 'px,' + caret.top + 'px,0)';
+      return caret;
     },
     reveal(track) {
       pending?.delete(track.hidden);
