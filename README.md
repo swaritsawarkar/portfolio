@@ -21,7 +21,7 @@ Use `?mode=inverted` to open on the white-S-on-black variant first.
 
 Production builds use the portfolio project in SWARIT.org. The connected Supabase GitHub integration applies the migration in `supabase/migrations` on pushes to `main`. To use a separate backend, set its URL and **publishable** key using `.env.example`. For local development, copy that file to `.env.local` and fill in the values.
 
-For the separate `/admin/` page, create the owner in **Supabase → Authentication → Users** with the portfolio contact email and a password entered privately. A different owner email can be set using `VITE_SIGNING_OWNER_EMAIL`. In the SQL editor, grant that account moderation access using its user ID:
+The production owner account is configured in Supabase Auth. To set up a separate backend, create its owner in **Supabase → Authentication → Users**. Set a different email with `VITE_SIGNING_OWNER_EMAIL` if needed, then grant that account moderation access by user ID:
 
 ```sql
 update auth.users
