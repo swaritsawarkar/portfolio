@@ -30,7 +30,7 @@ set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
 where id = '<owner user ID>'::uuid;
 ```
 
-Visit `/admin/` and sign in as `swaritlol` with that password. The owner can review and remove individual signatures. Visitors draw directly on the shared canvas and add their name in the toolbar. **More wall space** extends the same canvas. The database validates the ink budget and rejects overlapping signatures.
+Visit `/admin/` and sign in as `swaritlol` with that password. The owner can review and remove individual signatures. Visitors draw directly on the shared canvas and add their name in the toolbar. **More wall space** extends the same canvas. Both editions share one signature allowance per browser. The database validates the ink budget and rejects overlapping signatures.
 
 ## Logo artwork
 

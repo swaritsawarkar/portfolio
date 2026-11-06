@@ -25,6 +25,7 @@
 .wall-tools, .wall-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .wall-foot { justify-content: space-between; padding-top: 12px; gap: 12px 20px; font-size: .86rem; }
 .wall-status { flex: 1; min-width: 24ch; color: var(--muted); }
+#portfolio .wall-signed-note { margin-bottom: 12px; color: var(--muted); }
 .wall-count { font: .74rem/1.3 Consolas, monospace; }
 .signing-wall button, .wall-admin button {
   min-height: 44px;

@@ -2,6 +2,23 @@ import { extend, measure, overlaps, paper, paperPoint, renderInk, renderMark, wa
 import { signingConfigured, signingStore } from './signing-store.js';
 import './signing-wall.css';
 
+const visitorKey = 'portfolio.wall.visitor.v1';
+const signedKey = 'portfolio.wall.signed.v1';
+const signedMessage = 'You’ve already signed. The same wall carries across both editions.';
+
+function getVisitor() {
+  try {
+    let id = localStorage.getItem(visitorKey);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(visitorKey, id);
+    }
+    return { id, signed: localStorage.getItem(signedKey) === id };
+  } catch {
+    return { id: null, signed: false };
+  }
+}
+
 export const signingWall = `
   <div class="signing-wall" data-part="frame" data-build-static>
     <form class="wall-controls">
@@ -14,6 +31,7 @@ export const signingWall = `
         <button type="submit" class="wall-primary">Sign the wall</button>
       </div>
     </form>
+    <p class="wall-signed-note" role="status" hidden></p>
     <div class="wall-viewport" tabindex="0" aria-label="Scrollable signature wall">
       <svg class="wall-board" aria-label="Draw a signature anywhere on the wall" xmlns="http://www.w3.org/2000/svg">
         <g class="wall-saved"></g><g class="wall-draft"></g>
@@ -37,7 +55,9 @@ export function mountSigningWall(section) {
   const form = find('.wall-controls');
   const nameInput = form.elements.signatureName;
   const notice = find('.wall-status');
+  const signedNote = find('.wall-signed-note');
   const submit = form.querySelector('[type="submit"]');
+  const visitor = getVisitor();
   let marks = [];
   let strokes = [];
   let height = 1200;
@@ -48,6 +68,17 @@ export function mountSigningWall(section) {
   let requestId = 0;
   let pointer;
   let blocked = false;
+
+  function lockSigning(remember = true) {
+    visitor.signed = true;
+    pointer = undefined;
+    strokes = [];
+    form.reset();
+    if (remember) {
+      try { localStorage.setItem(signedKey, visitor.id); } catch { /* The database still has the visitor ID. */ }
+    }
+    paintDraft();
+  }
 
   function setHeight(next) {
     height = Math.min(paper.height, Math.max(height, next));
@@ -82,9 +113,17 @@ export function mountSigningWall(section) {
     const remaining = Math.max(0, paper.ink - measure(strokes));
     find('progress').value = remaining;
     find('.wall-ink-count').textContent = remaining < 2 ? 'Out of ink' : Math.ceil(remaining / paper.ink * 100) + '% ink';
-    submit.disabled = busy || !ready || !strokes.length || collides();
-    button('undo').disabled = busy || !strokes.length;
-    button('clear').disabled = busy || !strokes.length;
+    const locked = visitor.signed || !visitor.id;
+    nameInput.disabled = locked;
+    submit.disabled = locked || busy || !ready || !strokes.length || collides();
+    submit.textContent = visitor.signed ? 'Already signed' : 'Sign the wall';
+    button('undo').disabled = locked || busy || !strokes.length;
+    button('clear').disabled = locked || busy || !strokes.length;
+    button('pan').disabled = locked;
+    button('pan').textContent = locked ? 'View only' : pan ? 'Switch to draw' : 'Pan the wall';
+    board.classList.toggle('is-panning', pan || locked);
+    signedNote.hidden = !locked;
+    signedNote.textContent = visitor.signed ? signedMessage : locked ? 'Enable site storage to sign the wall.' : '';
   }
 
   async function refresh() {
@@ -96,7 +135,8 @@ export function mountSigningWall(section) {
       marks = rows;
       ready = true;
       button('refresh').hidden = true;
-      if (!strokes.length) notice.textContent = 'Draw anywhere there’s room. Your name goes below your mark.';
+      if (!strokes.length) notice.textContent = visitor.signed ? signedMessage
+        : 'Draw anywhere there’s room. Your name goes below your mark.';
       paintSaved();
     } catch {
       if (current !== requestId) return false;
@@ -112,7 +152,7 @@ export function mountSigningWall(section) {
   const pointsUsed = () => strokes.reduce((count, stroke) => count + stroke.length, 0);
 
   board.addEventListener('pointerdown', (event) => {
-    if (!ready || pan || busy || pointer !== undefined || event.button !== 0 ||
+    if (!visitor.id || visitor.signed || !ready || pan || busy || pointer !== undefined || event.button !== 0 ||
         strokes.length >= paper.strokes || measure(strokes) + paper.lift > paper.ink || pointsUsed() >= paper.points) return;
     if (document.activeElement === nameInput) nameInput.blur();
     strokes.push([point(event, board.getBoundingClientRect())]);
@@ -161,7 +201,7 @@ export function mountSigningWall(section) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const name = nameInput.value.trim();
-    if (!ready || busy || !strokes.length) return;
+    if (!visitor.id || visitor.signed || !ready || busy || !strokes.length) return;
     if (!name) {
       notice.textContent = 'Enter your name before signing.';
       nameInput.focus();
@@ -176,15 +216,17 @@ export function mountSigningWall(section) {
     paintDraft();
     notice.textContent = 'Saving your signature…';
     try {
-      const entry = await signingStore.sign(name, strokes);
+      const entry = await signingStore.sign(name, strokes, visitor.id);
       ++requestId;
       marks.push(entry);
-      strokes = [];
-      form.reset();
+      lockSigning();
       paintSaved();
       notice.textContent = 'Your signature is on the wall.';
     } catch (error) {
-      if (error.code === '23P01') {
+      if (error.code === '23505') {
+        lockSigning();
+        await refresh();
+      } else if (error.code === '23P01') {
         await refresh();
         notice.textContent = 'Someone signed there first. Clear your draft and find another spot.';
       } else notice.textContent = 'Couldn’t save. Your draft is still here.';
@@ -216,6 +258,12 @@ export function mountSigningWall(section) {
     } else if (action === 'refresh') void refresh();
   });
 
+  window.addEventListener('storage', (event) => {
+    if (event.key === signedKey && visitor.id && event.newValue === visitor.id && !visitor.signed) {
+      lockSigning(false);
+      if (near) void refresh();
+    }
+  });
   setHeight(height);
   paintDraft();
   notice.textContent = signingConfigured ? 'Loading the wall…' : 'The shared wall is awaiting setup.';

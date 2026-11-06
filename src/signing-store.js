@@ -43,9 +43,9 @@ export const signingStore = {
       after = '&id=gt.' + encodeURIComponent(page.at(-1).id);
     }
   },
-  async sign(name, strokes) {
+  async sign(name, strokes, visitorId) {
     const [entry] = await request(collection + fields, {
-      method: 'POST', body: JSON.stringify({ name, strokes }),
+      method: 'POST', body: JSON.stringify({ name, strokes, visitor_id: visitorId }),
       headers: { Prefer: 'return=representation' },
     });
     return entry;
