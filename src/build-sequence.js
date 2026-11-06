@@ -1,3 +1,6 @@
+import { createTyping } from './build-typing.js';
+import { createSignature } from './build-signature.js';
+
 const clamp = (n, low = 0, high = 1) => Math.max(low, Math.min(high, n));
 const mix = (a, b, t) => a + (b - a) * t;
 const ease = (t) => { t = clamp(t); return t * t * (3 - 2 * t); };
@@ -38,10 +41,13 @@ const roles = [
   { name: 'ChatGPT', color: '#d9f959', station: [.14, .29], delay: .02, arc: -32 },
   { name: 'Claude', color: '#fbb8dc', station: [.68, .65], delay: .1, arc: 42 },
   { name: 'Grok', color: '#95d5ff', station: [.70, .16], delay: 0, arc: -20 },
+  { name: 'me!!', color: '#ffab73', station: [.38, .52], delay: .05, arc: 28 },
+  { name: 'Gemini', color: '#c6b2ff', station: [.36, .14], delay: .08, arc: -45 },
 ];
 const viewportWidth = () => document.documentElement.clientWidth;
 const pageTop = (node) => node.getBoundingClientRect().top + scrollY;
 const rush = (t) => { t = clamp(t); return t < .5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2; };
+const clickTime = 145;
 
 function worker(layer, role) {
   const outline = document.createElement('div');
@@ -52,14 +58,23 @@ function worker(layer, role) {
   node.className = 'build-worker';
   node.style.setProperty('--worker', role.color);
   node.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 1 21 14l-8 .8-3.5 7Z" fill="currentColor" stroke="#171717" stroke-width="1.15" stroke-linejoin="round"/></svg><span>' + role.name + '</span>';
-  layer.append(outline, node);
+  const caret = document.createElement('div');
+  caret.className = 'build-caret';
+  caret.style.setProperty('--worker', role.color);
+  caret.hidden = true;
+  const typo = document.createElement('span');
+  caret.append(typo);
+  layer.append(outline, caret, node);
   return {
-    role, outline, x: -110, y: innerHeight * role.station[1],
+    role, outline, caret, typo, x: -110, y: innerHeight * role.station[1],
     put(x, y, holding = false) {
       this.x = x;
       this.y = y;
       node.classList.toggle('is-grabbing', holding);
       node.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+    },
+    hover(x, y, holding = false) {
+      this.put(clamp(x, 7, viewportWidth() - 86), clamp(y, 9, innerHeight - 70), holding);
     },
     select(rect, x, y, opacity) {
       const left = clamp(rect.left + x - 6, 0, viewportWidth());
@@ -76,17 +91,21 @@ function worker(layer, role) {
   };
 }
 
-function prepare(scene) {
+function prepare(scene, typing) {
   const selector = '[data-part], .portrait, .chapter-label';
   const pieces = [...scene.querySelectorAll(selector)].filter((target) => !target.parentElement.closest(selector));
   return pieces.map((target) => {
     const part = target.dataset.part;
     const lane = part === 'link' || target.matches('details, .contact-mail') ? 2
       : part === 'type' || part === 'copy' || target.matches('.chapter-label, .timeline-year, .about-copy') ? 0 : 1;
-    if (getComputedStyle(target).display === 'inline') target.classList.add('build-inline');
     target.classList.add('build-piece');
     target.dataset.buildState = 'waiting';
-    return { target, lane, x: 0, y: 0, source: null };
+    const tracks = typing.prepare(target);
+    const placement = target.matches('.portrait') ? 1250 : part === 'box' ? 850 : 510;
+    return {
+      target, lane, x: 0, y: 0, source: null, tracks, placement,
+      duration: placement + tracks.reduce((total, track) => total + track.duration + clickTime, 0),
+    };
   });
 }
 
@@ -145,7 +164,7 @@ function grab(actor, piece, time, index) {
   const swoop = Math.sin(approach * Math.PI) * actor.role.arc;
   const cursorX = mix(mix(source.actorX, anchorX + x, approach) + swoop * .58, anchorX + 26, release);
   const cursorY = mix(mix(source.actorY, anchorY + y, approach) + swoop, anchorY + 22, release);
-  actor.put(clamp(cursorX, 7, width - 91), clamp(cursorY, 9, height - 62), t > .27 && t < .87);
+  actor.hover(cursorX, cursorY, t > .27 && t < .87);
 
   if (t >= .20) {
     piece.target.dataset.buildState = t >= .87 ? 'placed' : 'dragging';
@@ -158,7 +177,7 @@ function restRoute(actor, from, t, lane) {
   const [x, y] = actor.role.station;
   const swing = Math.sin(Math.PI * t);
   actor.outline.hidden = true;
-  actor.put(
+  actor.hover(
     mix(from.x, viewportWidth() * x, rush(t)) + swing * (lane === 1 ? -54 : 50),
     mix(from.y, innerHeight * y, ease(t)) - swing * 42,
   );
@@ -169,92 +188,132 @@ function groupByView(scene, pieces) {
   const top = pageTop(scene);
   const height = innerHeight * .66;
   const batches = new Map();
+  let firstPhoto;
   for (const piece of pieces) {
-    const band = Math.max(0, Math.floor((pageTop(piece.target) - top) / height));
-    if (!batches.has(band)) batches.set(band, []);
-    batches.get(band).push(piece);
+    const position = pageTop(piece.target);
+    const band = Math.max(0, Math.floor((position - top) / height));
+    const photo = piece.target.closest('.win-photo');
+    if (photo && (!firstPhoto || photo.offsetLeft + photo.offsetWidth - firstPhoto.offsetLeft > photo.parentElement.clientWidth)) {
+      firstPhoto = photo;
+    }
+    const key = photo ? firstPhoto : band;
+    if (!batches.has(key)) {
+      const viewTop = photo ? position - innerHeight * .06 : top + band * height - innerHeight * .07;
+      batches.set(key, { top: viewTop, position, photo, pieces: [] });
+    }
+    const batch = batches.get(key);
+    if (photo) {
+      const caption = photo.querySelector('figcaption');
+      batch.top = Math.max(batch.top, pageTop(caption) + caption.offsetHeight - innerHeight * .83);
+    }
+    batch.pieces.push(piece);
   }
-  return [...batches.entries()].sort(([a], [b]) => a - b)
-    .map(([band, items]) => ({ top: Math.round(top + band * height - innerHeight * .07), pieces: items }));
+  return [...batches.values()].sort((a, b) => a.position - b.position);
 }
 
-function balanceJobs(lanes) {
-  // Share real layout pieces when a scene has more copy than media or links.
-  // Keep at least one job in its original lane so each cursor still has a role.
-  for (;;) {
-    const ordered = [...lanes].sort((a, b) => a.items.length - b.items.length);
-    const [available, , busiest] = ordered;
-    if (busiest.items.length - available.items.length < 2) return;
-    available.items.push(busiest.items.pop());
+function distribute(pieces, actors) {
+  const queues = actors.map((actor) => ({ actor, items: [], duration: 0 }));
+  const order = new Map(pieces.map((piece, index) => [piece, index]));
+  const longestFirst = [...pieces].sort((a, b) => b.duration - a.duration);
+  for (const piece of longestFirst) {
+    const preferred = queues[piece.lane];
+    const shortest = queues.reduce((best, queue) => queue.duration < best.duration ? queue : best);
+    const queue = preferred.duration <= shortest.duration ? preferred : shortest;
+    queue.items.push(piece);
+    queue.duration += piece.duration;
   }
+  queues.forEach(({items}) => items.sort((a, b) => order.get(a) - order.get(b)));
+  return queues;
 }
 
-async function assemble(batch, actors, signal, hero, clock) {
-  const lanes = actors.map((actor, index) => ({
-    actor, items: batch.pieces.filter((piece) => piece.lane === index),
-    from: { x: actor.x, y: actor.y }, last: -1,
-  }));
-  if (!hero) balanceJobs(lanes);
-  const speed = hero ? [1370, 1850, 620] : [930, 1030, 530];
-  const duration = Math.max(1200, ...lanes.map(({items}, lane) => items.length * speed[lane]));
-  await animate(duration, (p) => {
-    lanes.forEach((lane, index) => {
-      const { items, actor } = lane;
-      if (!items.length) return restRoute(actor, lane.from, p, index);
-      const step = p * items.length;
-      const current = Math.min(items.length - 1, Math.floor(step));
-      if (current !== lane.last) {
-        items.slice(Math.max(0, lane.last), current).forEach(place);
-        lane.last = current;
+async function assemble(batch, actors, signal, clock, typing) {
+  const queues = distribute(batch.pieces, actors);
+  await Promise.all(queues.map(async ({actor, items}, lane) => {
+    for (const [index, piece] of items.entries()) {
+      await animate(piece.placement, (t) => grab(actor, piece, t, index), signal, clock);
+      if (signal.aborted) return;
+      place(piece);
+      actor.outline.hidden = true;
+      for (const track of piece.tracks) {
+        const from = { x: actor.x, y: actor.y };
+        const rect = track.node.parentElement.getBoundingClientRect();
+        const clickX = rect.left + 5;
+        const clickY = rect.top + 4;
+        const perchY = rect.top > 52 ? rect.top - 40 : rect.bottom + 5;
+        await animate(track.duration + clickTime, (t) => {
+          const elapsed = t * (track.duration + clickTime);
+          if (elapsed <= clickTime) {
+            const p = ease(elapsed / clickTime);
+            actor.hover(mix(from.x, clickX, p), mix(from.y, clickY, p), p > .72);
+          } else {
+            const stepBack = ease((elapsed - clickTime) / 190);
+            actor.hover(clickX - stepBack * 8, mix(clickY, perchY, stepBack));
+            typing.type(track, elapsed - clickTime, actor);
+          }
+        }, signal, clock);
+        actor.caret.hidden = true;
+        if (signal.aborted) return;
+        typing.reveal(track);
       }
-      grab(actor, items[current], step - current, current);
-    });
-  }, signal, clock);
-  if (!signal.aborted) batch.pieces.forEach(place);
-  actors.forEach((actor) => { actor.outline.hidden = true; });
+    }
+    if (signal.aborted) return;
+    const from = { x: actor.x, y: actor.y };
+    await animate(items.length ? 320 : 580, (t) => restRoute(actor, from, t, lane), signal, clock);
+  }));
 }
 
-async function drawSmiley(layer, actors, signal) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.classList.add('build-smiley');
-  svg.setAttribute('viewBox', '0 0 200 200');
-  const strokes = ['M66 64 Q62 72 66 80', 'M134 64 Q138 72 134 80', 'M48 115 Q100 168 152 115'];
-  const paths = strokes.map((stroke) => {
-    const path = document.createElementNS(svg.namespaceURI, 'path');
-    path.setAttribute('d', stroke);
-    svg.append(path);
-    return path;
-  });
-  layer.append(svg);
-  const lengths = paths.map((path) => path.getTotalLength());
-  paths.forEach((path, index) => {
-    path.style.strokeDasharray = lengths[index];
-    path.style.strokeDashoffset = lengths[index];
-    path.style.visibility = 'hidden';
+async function drawSignature(layer, actors, signal) {
+  const { svg, tracks } = createSignature(layer);
+  const windows = [[420, 2590], [2590, 4980], [1450, 4150], [800, 2630], [2750, 4520]];
+  const routes = tracks.map((track, index) => {
+    const [start, end] = windows[index];
+    const weight = track.reduce((sum, stroke) => sum + Math.max(18, stroke.length), 0);
+    const travel = 280;
+    const budget = end - start - travel * (track.length - 1);
+    let next = start;
+    return track.map(({path, length}) => {
+      path.style.strokeDasharray = length;
+      path.style.strokeDashoffset = length;
+      const duration = budget * Math.max(18, length) / weight;
+      const stroke = { path, length, start: next, end: next + duration };
+      next = stroke.end + travel;
+      return stroke;
+    });
   });
   const origins = actors.map(({x, y}) => ({x, y}));
-  await animate(1800, (t) => {
-    layer.style.backgroundColor = 'color-mix(in srgb, var(--ink) ' + 88 * ease(t * 4) + '%, transparent)';
-    const box = svg.getBoundingClientRect();
-    actors.forEach((actor, index) => {
-      const start = [.28, .34, .43][index];
-      const end = [.62, .70, 1][index];
-      const progress = ease((t - start) / (end - start));
-      const point = paths[index].getPointAtLength(lengths[index] * progress);
-      const x = box.left + point.x * box.width / 200;
-      const y = box.top + point.y * box.height / 200;
-      paths[index].style.strokeDashoffset = lengths[index] * (1 - progress);
-      paths[index].style.visibility = t > start ? 'visible' : 'hidden';
-      const approach = ease(t / start);
-      const leave = index === 2 ? 0 : ease((t - end) / .2);
-      actor.put(
-        mix(mix(origins[index].x, x, approach), viewportWidth() * (index === 0 ? .14 : .67), leave),
-        mix(mix(origins[index].y, y, approach), box.top - 32, leave),
-        t >= start && t < end,
-      );
+  await animate(5000, (t) => {
+    layer.style.setProperty('--build-dim', ease(t * 10));
+    const matrix = svg.getScreenCTM();
+    const time = t * 5000;
+    routes.forEach((route, index) => {
+      let point = new DOMPoint(origins[index].x, origins[index].y);
+      let previousEnd = Math.max(0, route[0].start - 650);
+      let drawing = false;
+      for (const stroke of route) {
+        if (time < stroke.start) {
+          const next = stroke.path.getPointAtLength(0).matrixTransform(matrix);
+          const p = ease((time - previousEnd) / (stroke.start - previousEnd));
+          point = new DOMPoint(mix(point.x, next.x, p), mix(point.y, next.y, p));
+          break;
+        }
+        const progress = clamp((time - stroke.start) / (stroke.end - stroke.start));
+        stroke.path.style.strokeDashoffset = stroke.length * (1 - progress);
+        stroke.path.style.visibility = 'visible';
+        point = stroke.path.getPointAtLength(stroke.length * progress).matrixTransform(matrix);
+        if (progress < 1) {
+          drawing = true;
+          break;
+        }
+        previousEnd = stroke.end;
+      }
+      const finished = ease((time - route.at(-1).end) / 500);
+      const [x, y] = actors[index].role.station;
+      actors[index].put(mix(point.x, viewportWidth() * x, finished),
+        mix(point.y, innerHeight * y, finished), drawing);
     });
   }, signal);
   if (!signal.aborted) await animate(600, () => {}, signal);
+  return svg;
 }
 
 export function createBuildSequence(portfolio, preference) {
@@ -262,17 +321,23 @@ export function createBuildSequence(portfolio, preference) {
   let state;
   const home = () => Math.ceil(pageTop(portfolio));
 
-  function finish(toHome = false, focus = false) {
-    if (!state) return;
-    const { pieces, layer, controls, cleanup } = state;
-    cleanup.abort();
-    state = undefined;
-    completed = true;
-    for (const { target } of pieces) {
-      target.classList.remove('build-piece', 'build-inline');
+  function revealPieces({ pieces, typing, rail }) {
+    for (const { target } of pieces.splice(0)) {
+      target.classList.remove('build-piece');
       delete target.dataset.buildState;
       for (const key of ['--piece-x', '--piece-y', '--piece-opacity']) target.style.removeProperty(key);
     }
+    typing.dispose();
+    rail.scrollLeft = 0;
+  }
+
+  function finish(toHome = false, focus = false) {
+    if (!state) return;
+    const { layer, controls, cleanup } = state;
+    cleanup.abort();
+    revealPieces(state);
+    state = undefined;
+    completed = true;
     document.documentElement.classList.remove('is-building');
     layer.remove();
     controls.remove();
@@ -304,10 +369,15 @@ export function createBuildSequence(portfolio, preference) {
     let constructing = true;
     const cleanup = new AbortController();
     const { signal } = cleanup;
-    const scenes = [...portfolio.querySelectorAll('[data-scene]')].map((scene) => ({ scene, pieces: prepare(scene) }));
-    state = { pieces: scenes.flatMap(({pieces}) => pieces), layer, controls, cleanup };
-    const actors = roles.map((role) => worker(layer, role));
+    const construction = new AbortController();
+    signal.addEventListener('abort', () => construction.abort(), { once: true });
+    const buildSignal = construction.signal;
+    const typing = createTyping();
+    const rail = portfolio.querySelector('.wins-rail');
     document.documentElement.classList.add('is-building');
+    const scenes = [...portfolio.querySelectorAll('[data-scene]')].map((scene) => ({ scene, pieces: prepare(scene, typing) }));
+    state = { pieces: scenes.flatMap(({pieces}) => pieces), layer, controls, cleanup, typing, rail };
+    const actors = roles.map((role) => worker(layer, role));
     portfolio.inert = true;
     document.body.append(layer, controls);
     const hintTimer = setTimeout(() => { boost.hidden = false; }, 1000);
@@ -325,7 +395,25 @@ export function createBuildSequence(portfolio, preference) {
     layer.addEventListener('click', speedUp, { signal });
     boost.addEventListener('click', speedUp, { signal });
     scrollTo(0, home());
-    skip.addEventListener('click', () => finish(true, true), { signal });
+    function beginEnding() {
+      constructing = false;
+      clearTimeout(hintTimer);
+      boost.disabled = true;
+      boost.classList.add('is-finished');
+      skip.textContent = 'Skip ending';
+      actors.forEach((actor) => {
+        actor.caret.hidden = actor.outline.hidden = true;
+      });
+      revealPieces(state);
+    }
+    skip.addEventListener('click', () => {
+      if (!constructing) {
+        finish(true, true);
+        return;
+      }
+      construction.abort();
+      beginEnding();
+    }, { signal });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') finish(true, true);
     }, { signal });
@@ -333,35 +421,36 @@ export function createBuildSequence(portfolio, preference) {
     preference.addEventListener('change', () => { if (preference.matches) finish(true); }, { signal });
 
     try {
-      for (const { scene, pieces } of scenes) {
-        if (signal.aborted) return;
+      constructionLoop: for (const { scene, pieces } of scenes) {
         for (const batch of groupByView(scene, pieces)) {
+          if (buildSignal.aborted) break constructionLoop;
           const from = scrollY;
           const target = clamp(batch.top, home(), document.documentElement.scrollHeight - innerHeight);
-          if (Math.abs(target - from) > 8) {
+          const railFrom = rail.scrollLeft;
+          const railTarget = batch.photo ? Math.min(batch.photo.offsetLeft, rail.scrollWidth - rail.clientWidth) : railFrom;
+          const distance = Math.max(Math.abs(target - from), Math.abs(railTarget - railFrom));
+          if (distance > 8) {
             const origins = actors.map(({x, y}) => ({x, y}));
-            await animate(clamp(Math.abs(target - from) * .78, 500, 1150), (t) => {
+            await animate(clamp(distance * .78, 500, 1150), (t) => {
               scrollTo(0, mix(from, target, ease(t)));
+              if (batch.photo) rail.scrollLeft = mix(railFrom, railTarget, ease(t));
               actors.forEach((actor, lane) => restRoute(actor, origins[lane], t, lane));
-            }, signal, clock);
+            }, buildSignal, clock);
           }
-          if (signal.aborted) return;
-          await assemble(batch, actors, signal, scene.id === 'home', clock);
+          if (buildSignal.aborted) break constructionLoop;
+          await assemble(batch, actors, buildSignal, clock, typing);
         }
       }
       if (signal.aborted) return;
-      constructing = false;
-      clearTimeout(hintTimer);
-      boost.disabled = true;
-      boost.classList.add('is-finished');
-      await drawSmiley(layer, actors, signal);
+      if (constructing) beginEnding();
+      const signature = await drawSignature(layer, actors, signal);
       if (signal.aborted) return;
-      const smiley = layer.querySelector('.build-smiley');
       const from = scrollY;
       const origins = actors.map(({x, y}) => ({x, y}));
       await animate(1500, (t) => {
-        smiley.style.opacity = 1 - ease(t * 2);
-        layer.style.backgroundColor = 'color-mix(in srgb, var(--ink) ' + 88 * (1 - ease(t * 2)) + '%, transparent)';
+        const remaining = 1 - ease(t * 2);
+        signature.style.opacity = remaining;
+        layer.style.setProperty('--build-dim', remaining);
         scrollTo(0, mix(from, home(), ease(t)));
         actors.forEach((actor, lane) => restRoute(actor, origins[lane], t, lane));
       }, signal);
@@ -369,8 +458,8 @@ export function createBuildSequence(portfolio, preference) {
       const exits = actors.map(({x, y}) => ({x, y}));
       await animate(600, (t) => {
         actors.forEach((actor, index) => {
-          const p = rush((t - index * .08) / .84);
-          actor.put(mix(exits[index].x, index === 0 ? -130 : viewportWidth() + 40, p),
+          const p = rush((t - index * .065) / .74);
+          actor.put(mix(exits[index].x, index % 2 === 0 ? -130 : viewportWidth() + 40, p),
             exits[index].y - Math.sin(p * Math.PI / 2) * 120);
         });
       }, signal);

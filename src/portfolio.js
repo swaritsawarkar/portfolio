@@ -38,11 +38,10 @@ const photoRatio = ([, width, height]) => width / height;
 function winPhoto(entry, index) {
   const [file, width, height, title, note] = entry;
   const src = photo(file + '.webp');
-  return '<figure class="win-photo" style="--photo-ratio:' + photoRatio(entry) + ';--slide-progress:' +
-    index / (wins.length - 1) + '"><div class="media-frame"' +
-    (index === 0 ? ' data-part="box"' : '') + '><img src="' + src + '" alt="' + escape(title) + '" width="' + width +
-    '" height="' + height + '" loading="lazy" decoding="async"></div><figcaption' + (index === 0 ? ' data-part="copy"' : '') +
-    '><strong>' + escape(title) + '</strong>' + (note ? '<span>' + escape(note) + '</span>' : '') + '</figcaption></figure>';
+  return '<figure class="win-photo" data-part="box" style="--photo-ratio:' + photoRatio(entry) + ';--slide-progress:' +
+    index / (wins.length - 1) + '"><div class="media-frame"><img src="' + src + '" alt="' + escape(title) + '" width="' + width +
+    '" height="' + height + '" loading="lazy" decoding="async"></div><figcaption><strong>' + escape(title) +
+    '</strong>' + (note ? '<span>' + escape(note) + '</span>' : '') + '</figcaption></figure>';
 }
 const timeline = [
   ['2023', ['Entered boarding school', 'NUS + NTU Data Science Workshop', 'SGFI football · state level']],
