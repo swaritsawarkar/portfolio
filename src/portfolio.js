@@ -184,7 +184,7 @@ export function mountPortfolio(root) {
   const creative = '<div class="creative-grid">' +
     frame(genZCoverItem.src, genZCoverItem.alt, genZCoverItem.caption) +
     frame(davinciTeamSeries[0].src, davinciTeamSeries[0].alt, davinciTeamSeries[0].caption) + '</div>' +
-    '<details class="creative-archive" data-part="link"><summary>DaVinci design archive <span aria-hidden="true">+</span></summary>' +
+    '<details class="creative-archive"><summary data-part="copy">DaVinci design archive <span aria-hidden="true">+</span></summary>' +
     '<div class="media-grid">' + [...davinciPanels, ...davinciPosterSeries, ...davinciTeamSeries.slice(1)]
       .map(({src, alt, caption}) => frame(src, alt, caption)).join('') + '</div></details>';
   const about = '<div class="about-grid"><h3 class="statement" data-part="copy">I build things, race drones, and turn ideas into reality.</h3>' +

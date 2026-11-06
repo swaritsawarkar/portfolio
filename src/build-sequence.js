@@ -1,5 +1,6 @@
 import { createTyping } from './build-typing.js';
 import { createSignature } from './build-signature.js';
+import { prepareRules, scheduleRules } from './build-rules.js';
 
 const clamp = (n, low = 0, high = 1) => Math.max(low, Math.min(high, n));
 const mix = (a, b, t) => a + (b - a) * t;
@@ -56,6 +57,9 @@ const pickupRoutes = {
 };
 
 function worker(layer, role) {
+  const stroke = document.createElement('div');
+  stroke.className = 'build-rule-stroke';
+  stroke.hidden = true;
   const outline = document.createElement('div');
   outline.className = 'build-selection';
   outline.style.setProperty('--worker', role.color);
@@ -73,9 +77,9 @@ function worker(layer, role) {
   const x = viewportWidth() * role.entrance[0];
   const y = innerHeight * role.entrance[1];
   node.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
-  layer.append(outline, caret, node);
+  layer.append(stroke, outline, caret, node);
   return {
-    role, outline, caret, typo, x, y,
+    role, outline, stroke, caret, typo, x, y,
     put(x, y, holding = false) {
       this.x = x;
       this.y = y;
@@ -104,7 +108,7 @@ function worker(layer, role) {
 function prepare(scene, typing, sceneIndex) {
   const targets = [...scene.querySelectorAll('[data-part], .portrait')].filter((target) => {
     const disclosure = target.closest('details:not([open])');
-    return !disclosure || disclosure === target;
+    return !disclosure || disclosure === target || target === disclosure.querySelector(':scope > summary');
   });
   const opening = ['#portfolio-name', '.hero-deck', '.wordmark', '.portrait', '.hero-link']
     .map((selector) => scene.querySelector(selector));
@@ -313,6 +317,31 @@ function drawFrame(actor, piece, t, from) {
   actor.select({ ...rect, left: reverse ? endX : rect.left, right: reverse ? rect.right : endX, bottom }, 0, 0, ease(t / .22));
 }
 
+function drawRule(actor, job, t) {
+  const { rule, from, reverse } = job;
+  const box = rule.target.getBoundingClientRect();
+  const left = Math.max(0, box.left);
+  const right = Math.min(viewportWidth() - 1, box.right - 1);
+  const top = Math.max(0, box.top);
+  const bottom = Math.min(innerHeight - 34, box.bottom - 1);
+  const x = reverse ? right : left;
+  const y = rule.edge === 'Bottom' ? box.bottom - 1 : top;
+  const approach = ease(t / .27);
+  const p = ease((t - .27) / .73);
+  const length = rule.vertical ? (bottom - top) * p : (right - left) * p;
+  const tipX = x + (rule.vertical ? 0 : (reverse ? -length : length));
+  const tipY = y + (rule.vertical ? length : 0);
+  actor.put(mix(from.x, tipX, approach), mix(from.y, tipY, approach), p > 0 && p < 1);
+
+  actor.stroke.hidden = length <= 0;
+  if (length <= 0) return;
+  actor.stroke.style.backgroundColor = rule.color;
+  const originX = reverse ? tipX : x;
+  const scale = rule.vertical ? 'scaleY(' : 'scaleX(';
+  actor.stroke.style.transform = 'translate3d(' + originX + 'px,' + y + 'px,0) ' + scale + length + ')';
+  if (p > .14) rule.revealDot();
+}
+
 function setTypeArea(actor, piece, t, from) {
   const rect = pieceRect(piece);
   const p = ease(t / .8);
@@ -355,6 +384,11 @@ function paintText(actor, job, time, typing) {
 }
 
 function finishJob(actor, job, typing) {
+  if (job.rule) {
+    job.rule.restore();
+    actor.stroke.hidden = true;
+    return;
+  }
   if (job.tracks) {
     if (job.direct && job.piece.target.dataset.buildState !== 'placed') place(job.piece);
     job.tracks.forEach(typing.reveal);
@@ -382,8 +416,8 @@ function planBuild(scenes, actors, rail, home) {
       const left = batch.photo ? clamp(batch.photo.offsetLeft, 0, railLimit) : previous.rail;
       const travel = Math.abs(top - previous.top) > 8 || Math.abs(left - previous.rail) > 8
         ? Math.min(540, slot * .34) : 0;
-      const lead = travel ? Math.min(130, duration * .12) : 0;
-      camera.push({ start: duration - lead, end: duration + travel, from: previous, top, rail: left });
+      const lead = travel && previous.scene?.id !== 'timeline' ? Math.min(130, duration * .12) : 0;
+      camera.push({ start: duration - lead, end: duration + travel, from: previous, top, rail: left, scene });
 
       const scale = (slot - travel) / Math.max(1, batch.duration);
       for (const job of batch.jobs) {
@@ -397,12 +431,15 @@ function planBuild(scenes, actors, rail, home) {
   return { lanes, camera, duration };
 }
 
-async function assemble(scenes, actors, rail, home, signal, clock, typing) {
+async function assemble(scenes, actors, rail, home, signal, clock, typing, rules) {
   const { lanes, camera, duration } = planBuild(scenes, actors, rail, home);
+  const releases = scheduleRules(rules, lanes, camera, duration, innerHeight);
   const indices = actors.map(() => 0);
   let view = 0;
+  let release = 0;
   await animate(duration, (t) => {
     const time = t * duration;
+    while (releases[release]?.time <= time) releases[release++].rule.restore();
     while (camera[view + 1]?.start <= time) view++;
     const shot = camera[view];
     const movement = shot.end > shot.start ? ease((time - shot.start) / (shot.end - shot.start)) : 1;
@@ -417,6 +454,7 @@ async function assemble(scenes, actors, rail, home, signal, clock, typing) {
       if (!job) return;
       job.from ??= { x: actor.x, y: actor.y };
       if (time < job.start) {
+        if (job.rule) return;
         const available = jobs[indices[lane] - 1]?.end ?? 0;
         const approach = Math.max(available, job.start - 220);
         if (time < approach) return;
@@ -433,7 +471,8 @@ async function assemble(scenes, actors, rail, home, signal, clock, typing) {
         job.active = true;
       }
       const p = clamp((time - job.start) / (job.end - job.start));
-      if (job.tracks) paintText(actor, job, p * job.duration, typing);
+      if (job.rule) drawRule(actor, job, p);
+      else if (job.tracks) paintText(actor, job, p * job.duration, typing);
       else if (job.piece.kind === 'frame') drawFrame(actor, job.piece, p, job.from);
       else if (job.direct || job.piece.kind === 'copy' || job.piece.kind === 'type') setTypeArea(actor, job.piece, p, job.from);
       else grab(actor, job.piece, p, job.from);
@@ -501,13 +540,14 @@ export function createBuildSequence(portfolio, preference) {
   let state;
   const home = () => Math.ceil(pageTop(portfolio));
 
-  function revealPieces({ pieces, typing, rail }) {
+  function revealPieces({ pieces, typing, rail, rules }) {
     for (const { target } of pieces.splice(0)) {
       target.classList.remove('build-piece');
       delete target.dataset.buildState;
       for (const key of ['--piece-x', '--piece-y', '--piece-opacity']) target.style.removeProperty(key);
     }
     typing.dispose();
+    rules.splice(0).forEach((rule) => rule.restore());
     rail.scrollLeft = 0;
   }
 
@@ -557,7 +597,8 @@ export function createBuildSequence(portfolio, preference) {
     document.documentElement.classList.add('is-building');
     const scenes = [...portfolio.querySelectorAll('[data-scene]')]
       .map((scene, index) => ({ scene, pieces: prepare(scene, typing, index) }));
-    state = { pieces: scenes.flatMap(({pieces}) => pieces), layer, controls, cleanup, typing, rail };
+    const rules = prepareRules(portfolio);
+    state = { pieces: scenes.flatMap(({pieces}) => pieces), layer, controls, cleanup, typing, rail, rules };
     const actors = roles.map((role) => worker(layer, role));
     portfolio.inert = true;
     document.body.append(layer, controls);
@@ -583,7 +624,7 @@ export function createBuildSequence(portfolio, preference) {
       boost.classList.add('is-finished');
       skip.textContent = 'Skip ending';
       actors.forEach((actor) => {
-        actor.caret.hidden = actor.outline.hidden = true;
+        actor.caret.hidden = actor.outline.hidden = actor.stroke.hidden = true;
       });
       revealPieces(state);
     }
@@ -602,7 +643,7 @@ export function createBuildSequence(portfolio, preference) {
     preference.addEventListener('change', () => { if (preference.matches) finish(true); }, { signal });
 
     try {
-      await assemble(scenes, actors, rail, home(), buildSignal, clock, typing);
+      await assemble(scenes, actors, rail, home(), buildSignal, clock, typing, rules);
       if (signal.aborted) return;
       if (constructing) beginEnding();
       const signature = await drawSignature(layer, actors, signal);
