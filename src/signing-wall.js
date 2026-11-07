@@ -33,6 +33,11 @@ export const signingWall = `
         <button type="submit" class="wall-primary">Sign the wall</button>
       </div>
     </form>
+    <div class="wall-view-tools" role="group" aria-label="Wall view">
+      <button type="button" data-wall-action="zoom-out" aria-label="Zoom out">−</button>
+      <button type="button" data-wall-action="zoom-reset" aria-label="Reset zoom">100%</button>
+      <button type="button" data-wall-action="zoom-in" aria-label="Zoom in">+</button>
+    </div>
     <p class="wall-signed-note" role="status" hidden></p>
     <div class="wall-viewport" tabindex="0" aria-label="Scrollable signature wall">
       <svg class="wall-board" aria-label="Draw a signature anywhere on the wall" xmlns="http://www.w3.org/2000/svg">
@@ -70,6 +75,28 @@ export function mountSigningWall(section) {
   let near = false;
   let requestId = 0;
   let pointer;
+  let drag;
+  let zoom = 1;
+
+  function sizeBoard() {
+    const pixels = viewport.clientWidth * zoom;
+    board.style.width = pixels + 'px';
+    board.style.height = pixels * height / width + 'px';
+  }
+
+  function changeZoom(next) {
+    if (pointer !== undefined || drag) return;
+    const previous = zoom;
+    const centerX = viewport.scrollLeft + viewport.clientWidth / 2;
+    const centerY = viewport.scrollTop + viewport.clientHeight / 2;
+    zoom = Math.max(.5, Math.min(3, next));
+    sizeBoard();
+    viewport.scrollLeft = centerX * zoom / previous - viewport.clientWidth / 2;
+    viewport.scrollTop = centerY * zoom / previous - viewport.clientHeight / 2;
+    button('zoom-reset').textContent = Math.round(zoom * 100) + '%';
+    button('zoom-out').disabled = zoom <= .5;
+    button('zoom-in').disabled = zoom >= 3;
+  }
 
   function lockSigning(remember = true) {
     visitor.signed = true;
@@ -85,6 +112,7 @@ export function mountSigningWall(section) {
   function setHeight(next) {
     height = Math.max(height, next);
     board.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    sizeBoard();
     button('extend').hidden = height >= paper.height;
   }
 
@@ -147,9 +175,11 @@ export function mountSigningWall(section) {
     submit.textContent = visitor.signed ? 'Already signed' : 'Sign the wall';
     button('undo').disabled = locked || busy || !strokes.length;
     button('clear').disabled = locked || busy || !strokes.length;
-    button('pan').disabled = locked;
+    button('pan').disabled = false;
+    button('pan').setAttribute('aria-pressed', String(pan || locked));
     button('pan').textContent = locked ? 'View only' : pan ? 'Switch to draw' : 'Pan the wall';
     board.classList.toggle('is-panning', pan || locked);
+    viewport.classList.toggle('is-panning', pan || locked);
     signedNote.hidden = !locked;
     signedNote.textContent = visitor.signed ? signedMessage : locked ? 'Enable site storage to sign the wall.' : '';
   }
@@ -178,6 +208,31 @@ export function mountSigningWall(section) {
 
   const point = (event, bounds) => paperPoint(event.clientX, event.clientY, bounds, height, width);
   const pointsUsed = () => strokes.reduce((count, stroke) => count + stroke.length, 0);
+
+  viewport.addEventListener('pointerdown', (event) => {
+    if (drag || pointer !== undefined || (event.button !== 0 && event.button !== 1)) return;
+    if (!pan && !visitor.signed && visitor.id && event.button !== 1) return;
+    event.preventDefault();
+    event.stopPropagation();
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
+      left: viewport.scrollLeft, top: viewport.scrollTop };
+    viewport.setPointerCapture(event.pointerId);
+    viewport.classList.add('is-dragging');
+  }, { capture: true });
+  viewport.addEventListener('pointermove', (event) => {
+    if (event.pointerId !== drag?.id) return;
+    event.preventDefault();
+    viewport.scrollLeft = drag.left + drag.x - event.clientX;
+    viewport.scrollTop = drag.top + drag.y - event.clientY;
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    viewport.addEventListener(type, (event) => {
+      if (event.pointerId !== drag?.id) return;
+      drag = undefined;
+      viewport.classList.remove('is-dragging');
+      if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
+    });
+  }
 
   board.addEventListener('pointerdown', (event) => {
     if (!visitor.id || visitor.signed || !ready || pan || busy || pointer !== undefined || event.button !== 0 ||
@@ -258,12 +313,17 @@ export function mountSigningWall(section) {
       notice.textContent = 'Draw anywhere there’s room.';
       paintDraft();
     } else if (action === 'pan') {
+      if (visitor.signed || !visitor.id) return;
       pan = !pan;
       pointer = undefined;
-      board.classList.toggle('is-panning', pan);
-      button('pan').setAttribute('aria-pressed', String(pan));
-      button('pan').textContent = pan ? 'Switch to draw' : 'Pan the wall';
+      paintDraft();
       notice.textContent = pan ? 'Pan to a clear spot, then switch to draw.' : 'Draw anywhere there’s room.';
+    } else if (action === 'zoom-in') {
+      changeZoom(zoom + .25);
+    } else if (action === 'zoom-out') {
+      changeZoom(zoom - .25);
+    } else if (action === 'zoom-reset') {
+      changeZoom(1);
     } else if (action === 'extend') {
       const previous = height;
       setHeight(height + 700);
@@ -278,6 +338,7 @@ export function mountSigningWall(section) {
     }
   });
   new ResizeObserver(() => {
+    sizeBoard();
     const next = Math.min(paper.width, Math.max(620, Math.round(viewport.clientWidth * 1.3)));
     if (next === width || pointer !== undefined || strokes.length || busy) return;
     width = next;
