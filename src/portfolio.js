@@ -55,7 +55,7 @@ const timeline = [
   ['2024', ['Indian Debating League · national qualifier', 'Harvard Sustainability Summit at FLAME University']],
   ['2025', ['Robo Race Nationals · second place', 'SBI Life Spell Bee · national top 20', 'Technoxian']],
   ['2026', [mu20Win, 'One Million Founders · Five-day program covering ideas, prototypes, and pitching.',
-    'Team Captain, DaVinci 027', 'Shoolini Summer Lab Program', 'Technical Head, Content Creation Club',
+    'Team Captain, DaVinci 027', 'Shoolini Summer Lab Program',
     'WSRO Nationals Junior Drone · top eight', 'Blix · top ten', 'Round Square Zoom Postcard',
     'AI Ignite Bootcamp', 'The Innovation Story AI + Robotics Bootcamp', 'IIT Madras eight-week course']],
 ];
