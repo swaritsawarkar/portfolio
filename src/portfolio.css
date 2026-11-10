@@ -167,6 +167,48 @@ html:has(.work-dialog[open]) { overflow: hidden; }
 .statement { font-size: clamp(1.8rem, 4.7vw, 5rem); font-weight: 600; line-height: 1.08; letter-spacing: -.055em; }
 .about-copy { border-top: 1px solid var(--rule); padding-top: 15px; line-height: 1.65; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.25rem); }
 .about-copy p + p { margin-top: 14px !important; }
+.journal-hero { padding: clamp(22px, 4vw, 56px) 0 clamp(34px, 6vw, 78px); }
+.journal-hero h3 { max-width: 1120px; margin-top: 18px !important; font-size: clamp(3.3rem, 10vw, 10.5rem); line-height: .88; letter-spacing: -.075em; font-weight: 500; }
+.journal-hero h3 em, .journal-copy h3 em { font-family: Georgia, serif; font-weight: 400; }
+.journal-hero-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, .65fr); align-items: end; gap: 32px; margin-top: clamp(24px, 5vw, 60px); }
+.journal-hero-bottom > p { max-width: 58ch; color: var(--muted); font-size: clamp(1rem, 1.8vw, 1.3rem); line-height: 1.6; }
+#portfolio .journal-copy-prompt { position: relative; justify-self: end; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 11px; min-height: 106px; width: min(100%, 370px); padding: 20px 31px; border: 1px solid color-mix(in srgb, var(--paper) 60%, transparent); border-radius: 48% 52% 46% 54% / 55% 43% 57% 45%; color: var(--paper); background: color-mix(in srgb, var(--paper) 9%, transparent); backdrop-filter: blur(14px); box-shadow: inset 0 0 26px color-mix(in srgb, var(--paper) 7%, transparent); text-align: left; cursor: pointer; transition: transform 450ms ease, background 350ms ease, border-radius 600ms ease; }
+#portfolio .journal-copy-prompt:hover { transform: scale(1.035) rotate(-1deg); background: color-mix(in srgb, var(--paper) 16%, transparent); border-radius: 55% 45% 53% 47% / 48% 57% 43% 52%; }
+.journal-copy-prompt > span { grid-row: 1 / 3; font-size: 1.5rem; color: var(--accent); }
+.journal-copy-prompt strong { align-self: end; font-size: 1rem; }
+.journal-copy-prompt small { color: var(--muted); font-size: .76rem; }
+.journal-velocity { overflow: hidden; display: flex; border-block: 1px solid var(--rule); padding: 11px 0; color: var(--muted); font: 500 .72rem/1.4 'DM Sans', sans-serif; letter-spacing: .13em; white-space: nowrap; }
+.journal-velocity > div { flex: none; min-width: 50%; animation: journal-velocity 24s linear infinite; }
+@keyframes journal-velocity { to { transform: translateX(-100%); } }
+.journal-article { max-width: 1060px; margin-left: auto; }
+.journal-copy { max-width: 72ch; line-height: 1.78; color: var(--muted); }
+.journal-copy > * + * { margin-top: 1.15em; }
+.journal-copy h3 { margin-top: 2.1em; color: var(--paper); font-size: clamp(2rem, 4.8vw, 4.6rem); line-height: 1.03; letter-spacing: -.06em; }
+.journal-copy strong { color: var(--paper); font-weight: 600; }
+.journal-copy ul, .journal-copy ol { padding-left: 1.35em; }
+.journal-copy li + li { margin-top: .48em; }
+.journal-copy a { color: var(--paper); overflow-wrap: anywhere; }
+.journal-copy code { padding: .08em .28em; background: color-mix(in srgb, var(--paper) 9%, transparent); color: var(--paper); font: .85em/1.5 ui-monospace, monospace; overflow-wrap: anywhere; }
+.journal-copy pre { max-height: min(70svh, 720px); overflow: auto; padding: clamp(14px, 2.5vw, 28px); border: 1px solid var(--rule); background: color-mix(in srgb, var(--paper) 4%, transparent); color: var(--paper); font: .76rem/1.7 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.journal-copy pre code { padding: 0; background: transparent; font: inherit; }
+.journal-copy blockquote { padding-left: 18px; border-left: 1px solid var(--accent); color: var(--paper); font-family: Georgia, serif; font-size: 1.15rem; font-style: italic; line-height: 1.65; }
+.journal-skill { display: grid; grid-template-columns: minmax(130px, .38fr) minmax(0, 1.62fr); gap: clamp(20px, 5vw, 72px); padding: clamp(38px, 6vw, 82px) 0; border-top: 1px solid var(--rule); }
+.journal-kicker { color: var(--accent); font-size: .76rem; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.journal-deck { color: var(--paper); font-family: Georgia, serif; font-size: clamp(1.2rem, 2.4vw, 2rem); }
+.journal-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(14px, 2vw, 26px); margin: 30px 0 clamp(38px, 6vw, 82px); }
+.journal-shot .media-frame { background: #eee; }
+.journal-shot img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; transition: transform 600ms cubic-bezier(.2,.7,.2,1); }
+.journal-shot:hover img { transform: scale(1.025); }
+.journal-shot figcaption { display: grid; grid-template-columns: auto 1fr; gap: 3px 11px; align-items: baseline; padding-top: 11px; }
+.journal-index { grid-row: 1 / 3; color: var(--accent); font-size: .7rem; }
+.journal-shot figcaption strong { color: var(--paper); font-weight: 500; }
+.journal-shot figcaption > span:last-child { color: var(--muted); font-size: .83rem; }
+.journal-prompt { display: grid; grid-template-columns: minmax(130px, .38fr) minmax(0, 1.62fr); gap: clamp(20px, 5vw, 72px); padding: clamp(38px, 6vw, 82px) 0; border-top: 1px solid var(--rule); }
+.journal-copy-again { display: inline-flex !important; width: auto !important; min-height: 52px !important; margin-top: 18px; border-radius: 999px !important; }
+.journal-last-line { color: var(--paper); font-family: Georgia, serif; font-size: clamp(1.4rem, 3vw, 2.2rem); font-style: italic; }
+.journal-copy-status { min-height: 1.5em; font-size: .8rem; }
+.journal-article > .journal-copy { margin: clamp(34px, 5vw, 68px) 0; }
+@media (prefers-reduced-motion: reduce) { .journal-velocity > div { animation: none; } #portfolio .journal-copy-prompt { transition: none; } }
 .wins-carousel { width: min(100%, 200svh); container-type: inline-size; }
 .wins-stage { background: var(--ink); }
 .wins-rail {
@@ -317,6 +359,9 @@ html.is-building { overflow: hidden; overflow-anchor: none; }
   .about-grid, .contact-grid { grid-template-columns: 1fr; gap: 22px; }
   .work-grid, .work-lead, .work-archive-grid { grid-template-columns: 1fr; }
   .creative-grid { grid-template-columns: 1fr; }
+  .journal-hero-bottom, .journal-skill, .journal-prompt { grid-template-columns: 1fr; gap: 19px; }
+  #portfolio .journal-copy-prompt { justify-self: start; width: min(100%, 370px); }
+  .journal-gallery { grid-template-columns: 1fr; }
   .chapter-head:has(.chapter-label) { grid-template-columns: 1fr; }
   .skill-row { grid-template-columns: 1fr; }
   #portfolio .skill-row h3 { border-right: 0; padding: 12px 0 0; }

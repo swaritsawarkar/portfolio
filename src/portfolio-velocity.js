@@ -4,7 +4,7 @@ const layers = [
   { selector: '.hero-type', distance: 19, shear: .28 },
   { selector: '.portrait', distance: -26, shear: 0 },
   { selector: '.chapter-head h2', distance: 22, shear: .48 },
-  { selector: '.work-feature, .creative-grid > figure', distance: -14, shear: .16 },
+  { selector: '.work-feature, .creative-grid > figure, .journal-shot', distance: -14, shear: .16 },
   { selector: '.timeline-year > strong', distance: 11, shear: 0 },
 ];
 

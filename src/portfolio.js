@@ -3,6 +3,7 @@ import { genZCoverItem, davinciPanels, davinciPosterSeries, davinciTeamSeries } 
 import { mountPhotoCarousel } from './photo-carousel.js';
 import { mountSigningWall, signingWall } from './signing-wall.js';
 import { track } from './portfolio-analytics.js';
+import { journalContent, mountJournal } from './journal.js';
 import './portfolio.css';
 
 const base = import.meta.env.BASE_URL;
@@ -225,7 +226,7 @@ export function mountPortfolio(root) {
     '<section class="hero-scene" id="home" data-scene aria-labelledby="portfolio-name">' +
     '<nav class="portfolio-nav" aria-label="Portfolio"><a class="wordmark" href="#home" data-part="link">Swarit Sawarkar</a>' +
     '<div><a href="#work" data-part="link">Work</a><a href="#creative" data-part="link">Creative</a>' +
-    '<a href="#about" data-part="link">About</a><a href="#contact" data-part="link">Contact</a></div></nav>' +
+    '<a href="#journal" data-part="link">Journal</a><a href="#about" data-part="link">About</a><a href="#contact" data-part="link">Contact</a></div></nav>' +
     '<div class="hero-grid"><div class="hero-type"><h1 id="portfolio-name" tabindex="-1" data-part="type"><span>Swarit</span><span>Sawarkar</span></h1>' +
     '<p class="hero-deck" data-part="copy">Robotics, software, and visual systems.</p>' +
     '<a class="hero-link" href="#work" data-part="link">Explore work <span aria-hidden="true">↘</span></a></div>' +
@@ -233,6 +234,7 @@ export function mountPortfolio(root) {
     '<img src="' + photo('swarit.png') + '" alt="Portrait of Swarit Sawarkar" width="1254" height="1254" fetchpriority="high" decoding="async"></picture></figure></div></section>' +
     chapter('work', 'Work.', 'Software, experiments, and prototypes.', work) +
     chapter('creative', 'Creative.', 'Cover design and visual systems for DaVinci 027.', creative) +
+    chapter('journal', 'Journal.', 'Design notes, visual references, and tools for better websites.', journalContent, '01 / Web design × AI') +
     chapter('about', 'About.', '<strong>Developer · FPV Enthusiast · Creator</strong>', about) +
     chapter('achievements', 'Field notes.', 'Photos from competitions and events.', achievements, 'Achievements') +
     chapter('timeline', 'Along the way.', 'School, competitions, and projects since 2023.', history, 'Timeline') +
@@ -241,6 +243,7 @@ export function mountPortfolio(root) {
     chapter('contact', 'Contact.', 'Get in touch.', contact) + '</main>';
 
   mountPhotoCarousel(root.querySelector('.wins-carousel'));
+  mountJournal(root.querySelector('#journal'));
   mountSigningWall(root.querySelector('#signatures'));
   root.addEventListener('click', (event) => {
     const skill = event.target.closest('.skill-tile');
