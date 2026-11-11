@@ -7,6 +7,7 @@ import latencySetup from "../assets/portfolio/latency/test-setup-with-camera-pre
 import tenthHoJayegaDashboard from "../assets/portfolio/10thhojayega-dashboard.webp";
 import pixelCutTimeline from "../assets/portfolio/pixelcut-pro-timeline.webp";
 import strikeoutDesktop from "../assets/portfolio/strikeout-os.png";
+import genZCover from "../assets/portfolio/creative/gen-z-is-cooked-cover.webp";
 import type { Project } from "../types/portfolio";
 
 export const projects: Project[] = [
@@ -189,6 +190,7 @@ export const projects: Project[] = [
     slug: "gen-z-is-cooked",
     n: "10",
     name: "Gen Z Is Cooked",
+    media: [{ kind: "image", src: genZCover, alt: "Gen Z Is Cooked book cover by Swarit Sawarkar", caption: "Book cover design" }],
     status: "WRITING",
     summary: "A book in progress about attention, trends, comparison, and online culture.",
     desc: "A 15-year-old's take on attention, trends, comparison, and how the internet is rewiring us. A book in progress.",

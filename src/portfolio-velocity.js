@@ -1,6 +1,7 @@
 import './portfolio-velocity.css';
 
 const layers = [
+  { selector: '.journal-hero h1, .journal-hero-bottom > p, .journal-copy-cta, .journal-repo, .journal-skill > .journal-copy, .journal-article > .journal-copy, .journal-prompt > *, .journal-nav > *, .journal-footer > *, .journal-entry-link > *', distance: 9, shear: .06 },
   { selector: '.hero-type', distance: 19, shear: .28 },
   { selector: '.portrait', distance: -26, shear: 0 },
   { selector: '.chapter-head > *', distance: 22, shear: .32 },
@@ -37,7 +38,7 @@ export function mountPortfolioVelocity(portfolio, reducedMotion) {
   let velocity = 0;
 
   const canMove = () => !reducedMotion.matches && !document.hidden && !portfolio.inert
-    && body.classList.contains('is-revealed') && !body.classList.contains('is-outro')
+    && (body.classList.contains('is-revealed') || body.classList.contains('journal-page')) && !body.classList.contains('is-outro')
     && !root.classList.contains('is-building');
 
   function clear(node) {
