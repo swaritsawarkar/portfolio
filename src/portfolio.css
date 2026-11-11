@@ -179,9 +179,12 @@ html:has(.work-dialog[open]) { overflow: hidden; }
 .journal-arrow-line, .journal-arrow-head { stroke-dasharray: 1; stroke-dashoffset: 1; animation: journal-arrow-draw 1.15s cubic-bezier(.22,.7,.18,1) both; }
 .journal-arrow-head { animation-delay: .9s; }
 @keyframes journal-arrow-draw { to { stroke-dashoffset: 0; } }
-#portfolio .journal-copy-prompt { justify-self: start; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; max-width: 100%; padding: 12px 20px; border: 1px solid var(--paper); border-radius: 6px; background: var(--paper); color: var(--ink); font: 500 .95rem/1.4 'DM Sans', sans-serif; cursor: pointer; }
-#portfolio .journal-copy-prompt:hover { background: var(--ink); color: var(--paper); }
-#portfolio .journal-copy-prompt:disabled { opacity: .6; cursor: wait; }
+#portfolio .journal-copy-prompt { justify-self: start; display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 54px; min-width: 218px; max-width: 100%; padding: 12px 22px; border: 1px solid var(--paper); border-radius: 999px; background: var(--paper); color: var(--ink); box-shadow: 0 10px 28px #25241f1f; font: 600 .95rem/1.4 'DM Sans', sans-serif; cursor: pointer; transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease; }
+#portfolio .journal-copy-prompt::before { content: ""; width: 14px; height: 16px; flex: none; border: 1.5px solid currentColor; border-radius: 3px; box-shadow: 3px -3px 0 -1px var(--paper), 3px -3px 0 0 currentColor; transform: translate(-1px, 1px); }
+#portfolio .journal-copy-prompt:hover { background: color-mix(in srgb, var(--paper) 88%, white); box-shadow: 0 14px 34px #25241f2b; transform: translateY(-2px); }
+#portfolio .journal-copy-prompt:active { transform: translateY(0) scale(.98); }
+#portfolio .journal-copy-prompt:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+#portfolio .journal-copy-prompt:disabled { opacity: .6; cursor: wait; transform: none; }
 .journal-velocity { overflow: hidden; display: flex; border-block: 1px solid var(--rule); padding: 11px 0; color: var(--muted); font: 500 .72rem/1.4 'DM Sans', sans-serif; letter-spacing: .13em; white-space: nowrap; }
 .journal-velocity > div { flex: none; min-width: 50%; animation: journal-velocity 24s linear infinite; }
 @keyframes journal-velocity { to { transform: translateX(-100%); } }
