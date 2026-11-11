@@ -2,6 +2,8 @@
 
 Interactive portfolio with the liquid S opening, animated portfolio build, and dark and light editions.
 
+The homepage links to the journal collection at `/journal`. Articles have their own pages, starting with `/journal/ai-web-design-skills`, and open directly without the portfolio introduction. Add each new article HTML entry to `vite.config.js` and `public/sitemap.xml`.
+
 ## Run
 
 ```powershell
