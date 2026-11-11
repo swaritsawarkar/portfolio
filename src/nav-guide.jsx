@@ -1,11 +1,31 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './portfolio.css';
 import './journal-page.css';
 import './nav-guide.css';
+import { mountNavHeroMotion } from './nav-hero-motion.js';
 
 const components = import.meta.glob('./nav-examples/*.jsx', { eager: true, import: 'default' });
 const sources = import.meta.glob('./nav-examples/*.jsx', { eager: true, query: '?raw', import: 'default' });
+
+function Hero() {
+  const hero = useRef(null);
+  useEffect(() => mountNavHeroMotion(hero.current), []);
+  const columns = [
+    ['minimal', 'floating-pill', 'pill-highlight', 'center-action'],
+    ['glassmorphism', 'tab-indicator', 'ios-inspired-dock', 'expanding-label'],
+  ];
+  const rail = (slugs, index) => <div className={`hero-rail hero-rail-${index}`} aria-hidden="true" inert>
+    <div className="hero-track">{[0, 1].map((copy) => <div className="hero-group" key={copy}>
+      {slugs.map((slug) => { const Component = components[`./nav-examples/${slug}.jsx`]; return <div className="hero-nav-preview" key={slug}><Component /></div>; })}
+    </div>)}</div>
+  </div>;
+  return <div className="hero-layout" ref={hero}>
+    {rail(columns[0], 0)}
+    <div className="hero-heading"><h1>8 bottom navs<br />worth <em>stealing.</em></h1><p>A small part of the screen. A big part of how your app feels.</p><p>Try every style, find the one that fits, and copy the complete React component right beside it.</p><button className="hero-motion-toggle" type="button" data-hero-pause aria-pressed="false">Pause motion</button></div>
+    {rail(columns[1], 1)}
+  </div>;
+}
 const styles = [
   ['minimal', 'Minimal clean', 'Let the content lead.', 'A straightforward starting point for utilities, reading apps, and interfaces with a lot to say.', 'Quiet should still be clear. Keep the selected destination visible through shape and weight as well as color.'],
   ['floating-pill', 'Floating pill', 'Give the navigation room to breathe.', 'Useful when the bar should feel separate from a scrolling feed or a full-bleed canvas.', 'Leave space beneath the content. A floating bar must never cover the last item or a key action.'],
@@ -71,3 +91,4 @@ function Guide() {
 }
 
 createRoot(document.querySelector('#nav-guide-examples')).render(<Guide />);
+createRoot(document.querySelector('.nav-hero')).render(<Hero />);

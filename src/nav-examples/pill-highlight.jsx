@@ -28,8 +28,8 @@ export default function PillHighlightNav({ onNavigate = () => {} }) {
 .bn-pill-highlight .stage { overflow-x:auto; padding:28px 8px 12px; border-radius:16px; background:#e9e5dc; }
 .bn-pill-highlight nav { min-width:252px; display:flex; align-items:center; padding:6px; background:#fffdf8; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
 .bn-pill-highlight button { font:inherit; color:inherit; cursor:pointer; }
-.bn-pill-highlight nav button { position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
-.bn-pill-highlight button:hover { background:#e6e3d9; }
+.bn-pill-highlight nav button { border-radius:999px; position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
+@media (hover:hover) and (pointer:fine) { .bn-pill-highlight nav button:not([aria-pressed="true"]):not(.create):hover { background:#e6e3d9; } }
 .bn-pill-highlight button:focus-visible, .bn-pill-highlight input:focus-visible { outline:2px solid #3e5031; outline-offset:3px; }
 .bn-pill-highlight svg { width:22px; height:22px; flex-shrink:0; }
 .bn-pill-highlight button[aria-pressed="true"] { color:#35482a; font-weight:650; }

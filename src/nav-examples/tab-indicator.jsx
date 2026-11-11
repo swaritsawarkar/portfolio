@@ -28,8 +28,8 @@ export default function TabIndicatorNav({ onNavigate = () => {} }) {
 .bn-tab-indicator .stage { overflow-x:auto; padding:28px 8px 12px; border-radius:16px; background:#e9e5dc; }
 .bn-tab-indicator nav { min-width:252px; display:flex; align-items:center; padding:6px; background:#fffdf8; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
 .bn-tab-indicator button { font:inherit; color:inherit; cursor:pointer; }
-.bn-tab-indicator nav button { position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
-.bn-tab-indicator button:hover { background:#e6e3d9; }
+.bn-tab-indicator nav button { border-radius:12px; position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
+@media (hover:hover) and (pointer:fine) { .bn-tab-indicator nav button:not([aria-pressed="true"]):not(.create):hover { background:#e6e3d9; } }
 .bn-tab-indicator button:focus-visible, .bn-tab-indicator input:focus-visible { outline:2px solid #3e5031; outline-offset:3px; }
 .bn-tab-indicator svg { width:22px; height:22px; flex-shrink:0; }
 .bn-tab-indicator button[aria-pressed="true"] { color:#35482a; font-weight:650; }

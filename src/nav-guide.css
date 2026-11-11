@@ -39,3 +39,36 @@
 @media(prefers-reduced-motion:reduce) { .nav-guide *, .nav-guide *::before, .nav-guide *::after { scroll-behavior:auto !important; } }
 
 .guide-setup summary { cursor:pointer; padding-block:12px; font-weight:500; }
+
+.nav-guide .nav-hero { padding:0; text-align:center; }
+.nav-hero > p { margin-inline:auto; }
+.hero-layout { display:grid; grid-template-columns:240px minmax(0,1fr) 240px; gap:24px; align-items:center; min-height:540px; padding:32px 0; }
+.hero-heading { text-align:center; position:relative; z-index:1; }
+.nav-guide .hero-heading h1 { font-size:clamp(3rem,5.2vw,4.7rem) !important; }
+#portfolio .hero-heading p { max-width:38ch; margin-inline:auto; font-size:1rem; line-height:1.6; }
+.hero-motion-toggle { margin-top:24px; min-height:44px; padding:8px 16px; border:1px solid var(--rule); border-radius:999px; color:var(--paper); background:transparent; font:inherit; font-size:.8rem; cursor:pointer; }
+.hero-motion-toggle:hover { background:#e6e3d9; }
+.hero-rail { height:440px; min-width:0; overflow:hidden; pointer-events:none; user-select:none; mask-image:linear-gradient(transparent,#000 15%,#000 85%,transparent); }
+.hero-track, .hero-group { display:flex; flex-direction:column; }
+.hero-group { flex:none; gap:18px; padding-bottom:18px; }
+.hero-nav-preview { width:240px; flex:none; }
+.hero-nav-preview [class^="bn-"] .panel, .hero-nav-preview dialog { display:none; }
+.hero-nav-preview [class^="bn-"] .stage { background:transparent; padding:12px 4px; overflow:visible; }
+.hero-nav-preview [class^="bn-"] nav { min-width:0; }
+.hero-nav-preview [class^="bn-"] nav button { min-width:0; min-height:52px; font-size:10px; }
+.hero-nav-preview [class^="bn-"] svg { width:18px; height:18px; }
+.hero-nav-preview .bn-center-action nav .create { flex-basis:38px; min-height:38px; transform:translateY(-10px); }
+.hero-nav-preview :is(.bn-glassmorphism,.bn-ios-inspired-dock) .stage { background:radial-gradient(ellipse at 15% 60%,#c0ccb3,transparent 70%),#eae2d4; }
+@media(max-width:1099px) {
+  .hero-layout { grid-template-columns:minmax(0,1fr); gap:18px; padding:24px 0; }
+  .hero-rail { height:92px; width:100%; mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent); }
+  .hero-track, .hero-group { flex-direction:row; width:max-content; }
+  .hero-group { padding:0 18px 0 0; }
+  .hero-heading { padding:12px 0; }
+  .nav-guide .hero-heading h1 { font-size:clamp(2.8rem,7vw,4.7rem) !important; }
+  #portfolio .hero-heading p { max-width:40ch; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .hero-motion-toggle, .hero-group + .hero-group { display:none; }
+  .hero-track { transform:none !important; }
+}

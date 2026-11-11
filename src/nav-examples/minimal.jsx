@@ -28,8 +28,8 @@ export default function MinimalNav({ onNavigate = () => {} }) {
 .bn-minimal .stage { overflow-x:auto; padding:28px 8px 12px; border-radius:16px; background:#e9e5dc; }
 .bn-minimal nav { min-width:252px; display:flex; align-items:center; padding:6px; background:#fffdf8; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
 .bn-minimal button { font:inherit; color:inherit; cursor:pointer; }
-.bn-minimal nav button { position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
-.bn-minimal button:hover { background:#e6e3d9; }
+.bn-minimal nav button { border-radius:12px; position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
+@media (hover:hover) and (pointer:fine) { .bn-minimal nav button:not([aria-pressed="true"]):not(.create):hover { background:#e6e3d9; } }
 .bn-minimal button:focus-visible, .bn-minimal input:focus-visible { outline:2px solid #3e5031; outline-offset:3px; }
 .bn-minimal svg { width:22px; height:22px; flex-shrink:0; }
 .bn-minimal button[aria-pressed="true"] { color:#35482a; font-weight:650; }

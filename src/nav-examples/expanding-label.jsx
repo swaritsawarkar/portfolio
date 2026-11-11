@@ -28,8 +28,8 @@ export default function ExpandingLabelNav({ onNavigate = () => {} }) {
 .bn-expanding-label .stage { overflow-x:auto; padding:28px 8px 12px; border-radius:16px; background:#e9e5dc; }
 .bn-expanding-label nav { min-width:252px; display:flex; align-items:center; padding:6px; background:#fffdf8; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
 .bn-expanding-label button { font:inherit; color:inherit; cursor:pointer; }
-.bn-expanding-label nav button { position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
-.bn-expanding-label button:hover { background:#e6e3d9; }
+.bn-expanding-label nav button { border-radius:999px; position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
+@media (hover:hover) and (pointer:fine) { .bn-expanding-label nav button:not([aria-pressed="true"]):not(.create):hover { background:#e6e3d9; } }
 .bn-expanding-label button:focus-visible, .bn-expanding-label input:focus-visible { outline:2px solid #3e5031; outline-offset:3px; }
 .bn-expanding-label svg { width:22px; height:22px; flex-shrink:0; }
 .bn-expanding-label button[aria-pressed="true"] { color:#35482a; font-weight:650; }
