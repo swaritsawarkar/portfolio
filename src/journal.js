@@ -16,7 +16,7 @@ Read the installation instructions from each official repository before running 
 3. INSTALL THESE FOUR FOR THIS PROJECT
 Use their official project-local installation methods and the correct identifier for my detected agent. These are suggested commands; verify them against the current official instructions first:
 npx skills add anthropics/skills --skill frontend-design
-npx ui-ux-pro-max-cli init --ai <detected-agent>
+npx ui-ux-pro-max-cli init --ai AGENT_ID
 npx impeccable install
 npx skills add vercel-labs/agent-skills --skill web-design-guidelines
 

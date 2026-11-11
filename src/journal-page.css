@@ -41,3 +41,7 @@ body.journal-page { --ink: #f3f0e9; --paper: #25241f; margin: 0; background: var
   .journal-hero-bottom, .journal-skill, .journal-prompt { grid-template-columns: 1fr; gap: 20px; }
   .journal-gallery { grid-template-columns: 1fr; }
 }
+@media (max-width: 720px) {
+  .journal-page .journal-copy-cta { justify-self: start; width: min(220px, calc(100vw - 90px)); margin: 94px 0 12px clamp(54px, 18vw, 90px); }
+  .journal-page .journal-arrow-draw { right: 12px; bottom: 30px; }
+}
