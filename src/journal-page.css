@@ -15,7 +15,7 @@ body.journal-page { --ink: #f3f0e9; --paper: #25241f; margin: 0; background: var
 .journal-entries { border-top: 1px solid var(--rule); }
 .journal-entry { padding: 36px 0; }
 #portfolio .journal-entry-link { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(24px, 5vw, 64px); align-items: center; text-decoration: none; }
-.journal-entry img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; }
+.journal-entry img { display: block; width: 100%; height: auto; }
 .journal-entry h2 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(1.9rem, 3.5vw, 3rem); line-height: 1.12; letter-spacing: -.03em; text-wrap: balance; }
 #portfolio .journal-entry p { margin-top: 20px; color: var(--muted); max-width: 48ch; }
 .entry-read { display: inline-block; margin-top: 24px; text-decoration: underline; text-underline-offset: .28em; }
