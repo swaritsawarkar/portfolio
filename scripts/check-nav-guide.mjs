@@ -62,6 +62,12 @@ try {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const examples = page.locator('.nav-example');
   assert.equal(await examples.count(), 8);
+  assert.equal(await page.locator('.example-line, .example-caution, .guide-jumps, .guide-setup, .guide-signoff, .demo-row .panel').count(), 0);
+  assert.equal(await page.getByRole('heading', { name: 'Before you ship it', exact: true }).count(), 0);
+  assert.equal(await page.locator('body').textContent().then(text => text.includes('A little space of your own.')), false);
+  for (const nav of await page.locator('.hero-rail nav, .demo-row nav').all()) {
+    assert.ok(await nav.evaluate(el => ['borderTopLeftRadius','borderTopRightRadius','borderBottomLeftRadius','borderBottomRightRadius'].every(key => parseFloat(getComputedStyle(el)[key]) > 0)), 'all navbar corners are curved');
+  }
   const names = [];
   for (const section of await examples.all()) {
     const slug = await section.getAttribute('id');
@@ -72,7 +78,7 @@ try {
       assert.ok(await button.evaluate((el) => parseFloat(getComputedStyle(el).borderRadius) >= 12), `${slug}: rounded hover`);
       await button.click();
       assert.equal(await button.getAttribute('aria-pressed'), 'true');
-      assert.equal(await section.locator('.panel strong').textContent(), await button.getAttribute('aria-label'));
+      assert.equal(await section.locator('button[data-destination][aria-pressed="true"]').count(), 1);
       const size = await button.boundingBox();
       assert.ok(size.width >= 48 && size.height >= 48, `${slug}: touch target ${size.width} x ${size.height}`);
       const navBox = await section.locator('.demo-row nav').boundingBox();
@@ -96,12 +102,12 @@ try {
     await writeFile(resolve(fixtureRoot, `${slug}.jsx`), source);
   }
   await examples.first().getByRole('button', { name: 'Search', exact: true }).click();
-  assert.equal(await examples.nth(1).locator('.panel strong').textContent(), 'Home');
+  assert.equal(await examples.nth(1).getByRole('button', { name: 'Home', exact: true }).getAttribute('aria-pressed'), 'true');
   const center = page.locator('#center-action');
   await center.getByRole('button', { name: 'Create a note', exact: true }).click();
   await center.getByLabel('Note title', { exact: true }).fill('A working creation example');
   await page.getByRole('button', { name: 'Create note', exact: true }).click();
-  assert.match(await center.locator('.panel').textContent(), /Created locally: A working creation example/);
+  assert.match(await center.locator('.demo-row [role="status"]').textContent(), /Created locally: A working creation example/);
   await center.getByRole('button', { name: 'Create a note', exact: true }).click();
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('dialog[open]').count(), 0);
@@ -159,12 +165,12 @@ try {
   assert.equal(await page.locator('nav').count(), 8);
   for (const slug of names) {
     await page.locator(`#${slug}`).getByRole('button', { name: 'Search', exact: true }).click();
-    assert.equal(await page.locator(`#${slug} .panel strong`).textContent(), 'Search');
+    assert.equal(await page.locator(`#${slug}`).getByRole('button', { name: 'Search', exact: true }).getAttribute('aria-pressed'), 'true');
     assert.equal(await page.evaluate(() => window.lastDestination), 'Search');
   }
   // The journal cover is a capture of three real components from this clean app.
   await page.setViewportSize({ width: 1200, height: 720 });
-  await page.addStyleTag({ content: `body{margin:0;background:#f3f0e9;color:#25241f;padding:54px 100px;box-sizing:border-box}main{display:grid;gap:20px}main:before{content:'Navigation, with character.';font:46px Georgia;margin-bottom:12px}main>section{display:none}main>section:is(#minimal,#pill-highlight,#ios-inspired-dock){display:block} .panel{display:none!important}.stage{padding:12px!important}nav{min-height:76px}button{font-size:16px!important}svg{width:26px!important;height:26px!important}` });
+  await page.addStyleTag({ content: `body{margin:0;background:#f3f0e9;color:#25241f;padding:48px 72px;box-sizing:border-box}main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-content:center;min-height:624px}main>section{display:block}.stage{padding:8px!important}.stage span{display:none}nav{min-height:60px}svg{width:28px!important;height:28px!important}` });
   await page.screenshot({ path: resolve(root, 'dist/bottom-navigation-cover.png') });
   assert.deepEqual(errors, []);
   console.log('PASS: rounded hover states, touch behavior, hero motion/pause/visibility, 8 interactive demos, exact copied source, standalone React app, dialog, keyboard, reduced motion, 4 viewport sizes, and existing article.');

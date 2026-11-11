@@ -4,7 +4,7 @@ import React, { useId, useState, useRef } from "react";
 // Use onNavigate to connect a destination to your router.
 export default function CenterActionNav({ onNavigate = () => {} }) {
   const [active, setActive] = useState("Home");
-  const panelId = useId();
+  const noteId = useId();
   const dialog = useRef(null);
   const [created, setCreated] = useState("");
   const items = ['Home', 'Search', 'Inbox', 'Profile'];
@@ -24,11 +24,8 @@ export default function CenterActionNav({ onNavigate = () => {} }) {
   return <div className="bn-center-action">
     <style>{`.bn-center-action { color:#25241f; font:14px/1.5 system-ui,sans-serif; width:100%; }
 .bn-center-action * { box-sizing:border-box; }
-.bn-center-action .panel { min-height:110px; padding:20px 12px; }
-.bn-center-action .panel strong { display:block; font-size:20px; font-weight:600; }
-.bn-center-action .panel p { margin:8px 0 0; color:#5e5a51; }
 .bn-center-action .stage { overflow-x:auto; padding:28px 8px 12px; border-radius:16px; background:#e9e5dc; }
-.bn-center-action nav { min-width:252px; display:flex; align-items:center; padding:6px; background:#fffdf8; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
+.bn-center-action nav { border-radius:999px; min-width:252px; display:flex; align-items:center; padding:6px; background:#fffdf8; padding-bottom:max(6px, env(safe-area-inset-bottom)); }
 .bn-center-action button { font:inherit; color:inherit; cursor:pointer; }
 .bn-center-action nav button { border-radius:12px; position:relative; border:0; background:transparent; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:48px; min-height:60px; padding:8px 2px; font-size:12px; transition:background 180ms ease,color 180ms ease,flex 180ms ease; }
 @media (hover:hover) and (pointer:fine) { .bn-center-action nav button:not([aria-pressed="true"]):not(.create):hover { background:#e6e3d9; } }
@@ -44,24 +41,20 @@ export default function CenterActionNav({ onNavigate = () => {} }) {
 @media(prefers-reduced-motion:reduce) { .bn-center-action nav button { transition:none; } }
 
 .bn-center-action { .create { flex: 0 0 52px; min-height:52px; border-radius:50%; background:#3e5031; color:#fff; transform:translateY(-16px); box-shadow:0 6px 14px #38312633; } }`}</style>
-    <div className="panel" id={panelId} role="region" aria-label={`${active} sample`} aria-live="polite">
-      <strong>{active}</strong>
-      <p>{({ Home: "Your starting point. What will you explore?", Search: "Find your next idea here.", Saved: "Keep the things worth coming back to.", Inbox: "Your conversations belong here.", Profile: "A little space of your own." })[active]}</p>
-      {created && <p role="status">Created locally: {created}</p>}
-    </div>
     <div className="stage">
       <nav aria-label="CenterActionNav demo" onKeyDown={onKeyDown}>
         {items.map((item, index) => <React.Fragment key={item}>
           {index === 2 && <button className="create" type="button" aria-label="Create a note" aria-haspopup="dialog" onClick={() => dialog.current.showModal()}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 4v16M4 12h16" /></svg>
           </button>}
-          <button type="button" data-destination aria-pressed={active === item} aria-controls={panelId} aria-label={item} onClick={() => select(item)}>
+          <button type="button" data-destination aria-pressed={active === item} aria-label={item} onClick={() => select(item)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[index]} /></svg>
             <span>{item}</span>
           </button>
         </React.Fragment>)}
       </nav>
     </div>
+    {created && <p role="status">Created locally: {created}</p>}
     <dialog ref={dialog} aria-label="Create a note">
       <form onSubmit={(event) => {
         event.preventDefault();
@@ -71,8 +64,8 @@ export default function CenterActionNav({ onNavigate = () => {} }) {
         event.currentTarget.reset();
         dialog.current.close();
       }}>
-        <label htmlFor={`${panelId}-title`}>Note title</label>
-        <input id={`${panelId}-title`} name="title" required maxLength={120} />
+        <label htmlFor={`${noteId}-title`}>Note title</label>
+        <input id={`${noteId}-title`} name="title" required maxLength={120} />
         <button type="submit">Create note</button>
         <button type="button" onClick={() => dialog.current.close()}>Cancel</button>
         <p>This example keeps your note in memory until the page reloads.</p>

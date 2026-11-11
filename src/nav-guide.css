@@ -1,14 +1,11 @@
 .nav-guide .journal-intro h1 { font-size:clamp(3rem,7vw,6rem) !important; text-wrap:balance; }
 .nav-guide .journal-intro h1 em { font-weight:400; }
 .nav-guide p { max-width:72ch; }
-.guide-opening, .guide-setup, .guide-ending { max-width:76ch; padding-block:32px; }
+.guide-opening, .guide-ending { max-width:76ch; padding-block:32px; }
 .nav-guide h2 { font-family:Georgia,serif; font-size:clamp(1.8rem,3.2vw,3rem); font-weight:400; line-height:1.15; letter-spacing:-.03em; }
 #portfolio .nav-guide p { margin-top:18px; color:var(--muted); }
-.guide-jumps { display:flex; flex-wrap:wrap; gap:12px 24px; padding:24px 0; border-block:1px solid var(--rule); }
-.guide-jumps a { font-size:.9rem; padding-block:8px; }
 .nav-example { padding:60px 0; border-top:1px solid var(--rule); scroll-margin-top:28px; }
 .nav-example > header { margin-bottom:28px; }
-#portfolio .example-line { color:var(--paper); font-family:Georgia,serif; font-style:italic; font-size:1.3rem; }
 .example-columns { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; align-items:start; }
 .preview-side { min-width:0; position:sticky; top:24px; }
 .demo-row { display:flex; gap:8px; align-items:flex-end; }
@@ -20,25 +17,19 @@
 .demo-row [class^="bn-"] .stage { overflow-x:auto; }
 .demo-row [class^="bn-"] nav { min-width:252px; }
 .component-status { min-height:2.8em; font-size:.8rem; }
-.example-caution { font-size:.9rem; }
 .source-side { min-width:0; }
 .source-caption { display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:.74rem; padding:12px 0; color:var(--muted); }
 .nav-guide pre { white-space:pre; overflow:auto; max-width:100%; border:1px solid var(--rule); padding:20px; background:#ebe7dd; font:12px/1.7 ui-monospace,monospace; scrollbar-color:#969080 #ebe7dd; }
 .source-side pre { height:400px; margin:0; }
-.guide-setup pre { margin-top:22px; }
 .guide-ending { max-width:none; }
 .guide-ending h2 { margin-top:32px !important; }
-.guide-ending ul { max-width:72ch; padding-left:24px; }
-.guide-ending li { margin-top:16px; color:var(--muted); }
 .comparison-scroll { overflow:auto; margin-top:28px; }
 .guide-ending table { border-collapse:collapse; width:100%; font-size:.9rem; text-align:left; }
 .guide-ending caption { text-align:left; color:var(--muted); margin-bottom:16px; }
 .guide-ending td, .guide-ending th { padding:16px 12px; border-bottom:1px solid var(--rule); min-width:140px; }
-.guide-signoff { font-family:Georgia,serif; font-style:italic; font-size:1.5rem; padding-top:20px; }
 @media(max-width:900px) { .example-columns { grid-template-columns:1fr; gap:24px; } .preview-side { position:static; } .source-side pre { height:320px; } }
 @media(prefers-reduced-motion:reduce) { .nav-guide *, .nav-guide *::before, .nav-guide *::after { scroll-behavior:auto !important; } }
 
-.guide-setup summary { cursor:pointer; padding-block:12px; font-weight:500; }
 
 .nav-guide .nav-hero { padding:0; text-align:center; }
 .nav-hero > p { margin-inline:auto; }
@@ -52,7 +43,7 @@
 .hero-track, .hero-group { display:flex; flex-direction:column; }
 .hero-group { flex:none; gap:18px; padding-bottom:18px; }
 .hero-nav-preview { width:240px; flex:none; }
-.hero-nav-preview [class^="bn-"] .panel, .hero-nav-preview dialog { display:none; }
+.hero-nav-preview dialog { display:none; }
 .hero-nav-preview [class^="bn-"] .stage { background:transparent; padding:12px 4px; overflow:visible; }
 .hero-nav-preview [class^="bn-"] nav { min-width:0; }
 .hero-nav-preview [class^="bn-"] nav button { min-width:0; min-height:52px; font-size:10px; }
