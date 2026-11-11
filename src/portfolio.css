@@ -376,8 +376,9 @@ html.is-building { overflow: hidden; overflow-anchor: none; }
   .work-grid, .work-lead, .work-archive-grid { grid-template-columns: 1fr; }
   .creative-grid { grid-template-columns: 1fr; }
   .journal-hero-bottom, .journal-skill, .journal-prompt { grid-template-columns: 1fr; gap: 19px; }
-  .journal-copy-cta { justify-self: start; width: min(220px, calc(100vw - 90px)); margin: 72px 0 12px clamp(54px, 18vw, 90px); }
-  .journal-arrow-draw { right: 100px; bottom: 30px; }
+  .journal-copy-cta { justify-self: start; width: min(100%, 320px); margin: 24px 0 12px; }
+  .journal-copy-cta .journal-copy-prompt { width: max-content; white-space: nowrap; }
+  .journal-arrow-draw { display: none; }
   .journal-gallery, .journal-skill.has-repo-image { grid-template-columns: 1fr; }
   .journal-repo-preview { max-width: 420px; }
   .chapter-head:has(.chapter-label) { grid-template-columns: 1fr; }

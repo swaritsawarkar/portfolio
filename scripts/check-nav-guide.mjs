@@ -154,6 +154,15 @@ try {
   await page.locator('[data-copy-prompt]').first().waitFor();
   assert.equal(await page.locator('.nav-example').count(), 0);
   assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').some((x) => /react-dom/.test(x.name))), false);
+  for (const width of [533, 390, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    const mobileCopy = page.locator('.journal-copy-cta .journal-copy-prompt').first();
+    const layout = await mobileCopy.evaluate((button) => ({ height: button.getBoundingClientRect().height, width: button.getBoundingClientRect().width, parentWidth: button.parentElement.getBoundingClientRect().width, arrow: getComputedStyle(document.querySelector('.journal-arrow-draw')).display, pageWidth: document.documentElement.scrollWidth }));
+    assert.ok(layout.height <= 58, `copy button label stays on one line at ${width}px`);
+    assert.ok(layout.width <= layout.parentWidth, `copy button fits its container at ${width}px`);
+    assert.equal(layout.arrow, 'none', `decorative arrow is hidden at ${width}px`);
+    assert.ok(layout.pageWidth <= width, `article has no horizontal overflow at ${width}px`);
+  }
 
   // The copied source runs in a separate app with no portfolio CSS or helpers.
   await writeFile(resolve(fixtureRoot, 'index.html'), '<html><body><div id="root"></div><script type="module" src="/app.jsx"></script></body></html>');
