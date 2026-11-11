@@ -1,127 +1,38 @@
-const prompt = `You are a senior frontend engineer and
-creative web designer.
+const prompt = `You are my AI web-design toolkit setup agent and senior frontend design researcher. Set up my coding agent with reliable design skills so they are ready for future website projects.
 
-PROJECT:
-[NAME OF PROJECT]
+SETUP ONLY
+Do not build, redesign, or change this website's source code or content. Inspect the current project and its existing agent configuration first. Preserve unrelated files and settings.
 
-DESCRIPTION:
-[WHAT THE WEBSITE IS ABOUT]
+1. DETECT AND CHECK
+Identify the coding agent I am using (Codex, Claude Code, Cursor, or another agent), the project-local install scope it supports, and whether Node.js, npm, and required tools are available. Do not guess an agent identifier or installation command.
 
-TARGET AUDIENCE:
-[WHO WILL USE IT]
+2. REVIEW OFFICIAL SOURCES
+Read the installation instructions from each official repository before running anything:
+- Frontend Design by Anthropic: https://github.com/anthropics/skills/tree/main/skills/frontend-design
+- UI/UX Pro Max by NextLevelBuilder: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+- Impeccable by Paul Bakaus: https://github.com/pbakaus/impeccable
+- Web Design Guidelines by Vercel: https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
 
-TECH STACK:
-[REACT / NEXT.JS / OTHER]
+3. INSTALL THESE FOUR FOR THIS PROJECT
+Use their official project-local installation methods and the correct identifier for my detected agent. These are suggested commands; verify them against the current official instructions first:
+npx skills add anthropics/skills --skill frontend-design
+npx ui-ux-pro-max-cli init --ai <detected-agent>
+npx impeccable install
+npx skills add vercel-labs/agent-skills --skill web-design-guidelines
 
-PRIMARY GOAL:
-[WHAT VISITORS SHOULD DO]
+Do not install globally when a project-local option exists. If an installer would overwrite unrelated files or existing configuration, stop and explain the exact conflict before changing it. If a permission prompt is required, explain what it grants and wait for my approval.
 
-Use the following installed agent skills:
+4. FIND MORE USEFUL SKILLS
+Look through trustworthy skill catalogs and official repositories for other skills that would help with future frontend work, such as accessibility, responsive design, performance, animation, or design review. Verify each candidate's source and instructions. Do not install a pile of loosely related skills: keep a short, relevant list and distinguish installed skills from recommendations.
 
-1. UI/UX PRO MAX
-Generate a cohesive design system with
-typography, colors, layout rules, spacing,
-and component styles.
+5. LEAVE A FUTURE REFERENCE
+Create a project-local file named AI-WEB-DESIGN-SKILLS.md with the installed skills, official links, what each is for, how I invoke it in this agent, the verified install commands, any reload/restart step, and a short list of useful additional candidates. If that file already exists, preserve its contents and add a clearly marked section instead of replacing it. Use the installed skills for later website tasks in this project when relevant.
 
-2. FRONTEND DESIGN
-Build a distinctive, responsive,
-production-quality frontend.
+6. VERIFY AND REPORT
+Check that each of the four skills is present and discoverable by my coding agent. Clearly report installed, failed, and recommended-but-not-installed skills separately. Tell me exactly how to invoke each installed skill and whether I need to reload the agent. Do not claim success without checking.
 
-Avoid generic AI-generated UI patterns.
-
-3. IMPECCABLE
-Critique and polish the implementation.
-Improve visual hierarchy, typography,
-spacing, motion, and overall consistency.
-
-4. WEB DESIGN GUIDELINES
-Audit the finished interface for
-accessibility, usability, and
-interaction best practices.
-
-DESIGN PRESET: SOFT MONOCHROME
-
-Background: #0B0B0B
-Primary text: #F6F5F1
-Secondary text: #C8C8C8
-Borders: #303030
-
-Visual direction:
-Minimal, editorial, cinematic,
-asymmetrical, and typography-driven.
-
-Use:
-- Oversized editorial headlines
-- Intentional negative space
-- Restrained rounded components
-- Smooth scroll reveals
-- Subtle hover interactions
-- One memorable hero animation
-- Responsive mobile layouts
-- Strong typography and hierarchy
-
-Avoid:
-- Generic SaaS templates
-- Purple gradient backgrounds
-- Excessive glow effects
-- Random floating elements
-- Unnecessary animations
-- Placeholder content presented as real
-
-IMPLEMENTATION RULES:
-
-First inspect the existing repository,
-if one is provided.
-
-Preserve working functionality and
-avoid unrelated code changes.
-
-Build the actual working website,
-not just a static mockup.
-
-All navigation and interactive
-elements must function.
-
-Support keyboard navigation,
-mobile layouts, and reduced motion.
-
-Avoid unnecessary dependencies.
-
-WORKFLOW:
-
-STEP 1
-Define the visual direction and
-design system.
-
-STEP 2
-Implement the complete frontend.
-
-STEP 3
-Use Impeccable to critique and
-polish the finished interface.
-
-STEP 4
-Run the Web Design Guidelines audit.
-
-STEP 5
-Fix the important issues identified.
-
-STEP 6
-Test the website at desktop
-and mobile viewport sizes.
-
-Report what was implemented,
-what was tested, and any
-remaining limitations.
-
-FINAL GOAL:
-
-Create a website that feels
-professionally art-directed,
-distinctive, polished,
-and genuinely useful.
-
-Not another generic AI template.`;
+STOP AFTER SETUP
+Do not start a website project in this task. Leave the site ready for the next one.`;
 
 const skills = [
   {
@@ -193,7 +104,8 @@ const skillSections = skills.map((skill, index) =>
 export const journalContent = '<header class="journal-hero">' +
   '<h1>4 AI skills that make your websites look <em>insane.</em></h1>' +
   '<div class="journal-hero-bottom"><p data-part="copy">Stop building websites that look AI-generated. Give your coding agent better design direction, stronger systems, and a real review process.</p>' +
-  '<button class="journal-copy-prompt" type="button" data-copy-prompt>Copy the master prompt</button></div></header>' +
+  '<div class="journal-copy-cta"><svg class="journal-arrow-draw" viewBox="0 0 240 150" aria-hidden="true"><path class="journal-arrow-line" pathLength="1" d="M 12 55 C 74 -4 162 20 214 126"/><path class="journal-arrow-head" pathLength="1" d="M 179 99 L 214 126 L 198 86"/></svg>' +
+  '<button class="journal-copy-prompt" type="button" data-copy-prompt>Copy the master prompt</button></div></div></header>' +
   '<div class="journal-velocity" aria-hidden="true"><div>DESIGN DIRECTION&nbsp; ✳ &nbsp;VISUAL SYSTEMS&nbsp; ✳ &nbsp;POLISH&nbsp; ✳ &nbsp;USABILITY&nbsp; ✳ &nbsp;</div><div>DESIGN DIRECTION&nbsp; ✳ &nbsp;VISUAL SYSTEMS&nbsp; ✳ &nbsp;POLISH&nbsp; ✳ &nbsp;USABILITY&nbsp; ✳ &nbsp;</div></div>' +
   '<div class="journal-article"><section class="journal-copy" data-part="copy"><p>You prompt Claude or GPT for a website. It gives you the same rounded cards, predictable layout, random gradients, and animations you have seen a thousand times.</p><p>The code works. The website looks fine. But nothing about it stands out.</p><p>The problem is not always the model. It is how much design direction you give it. Agent skills add focused instructions, design references, and review workflows instead of making you explain good UI from scratch every time.</p><p>Here are four worth exploring, plus a complete copy-and-paste prompt and a soft monochrome preset.</p><h2>Study the details.</h2></section>' + gallery + skillSections +
   '<section class="journal-skill"><p class="journal-kicker" data-part="copy">A practical sequence</p><div class="journal-copy" data-part="copy"><h2>How to use all four together</h2><ol><li><strong>Define the design.</strong> Use UI/UX Pro Max to establish typography, spacing, color, and layout principles.</li><li><strong>Build.</strong> Use Frontend Design to make a distinctive, working interface.</li><li><strong>Refine.</strong> Use Impeccable to critique the result and polish weak spots.</li><li><strong>Review.</strong> Use Web Design Guidelines to find usability and accessibility issues before shipping.</li></ol><p>Then test it yourself on desktop and phone. Click every button, check navigation, and make sure motion respects reduced-motion preferences. Skills can guide decisions, but they do not replace looking at the finished site.</p></div></section>' +

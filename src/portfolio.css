@@ -172,6 +172,13 @@ html:has(.work-dialog[open]) { overflow: hidden; }
 .journal-hero h1 em, .journal-copy h2 em { font-family: Georgia, serif; font-weight: 400; }
 .journal-hero-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, .65fr); align-items: end; gap: 32px; margin-top: clamp(24px, 5vw, 60px); }
 .journal-hero-bottom > p { max-width: 58ch; color: var(--muted); font-size: clamp(1rem, 1.8vw, 1.3rem); line-height: 1.6; }
+.journal-copy-cta { position: relative; justify-self: end; width: min(100%, 370px); margin-top: 42px; }
+.journal-copy-cta .journal-copy-prompt { position: relative; z-index: 1; }
+.journal-arrow-draw { position: absolute; width: 224px; height: 140px; right: 38px; bottom: 30px; overflow: visible; color: var(--paper); pointer-events: none; }
+.journal-arrow-draw path { fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.journal-arrow-line, .journal-arrow-head { stroke-dasharray: 1; stroke-dashoffset: 1; animation: journal-arrow-draw 1.15s cubic-bezier(.22,.7,.18,1) both; }
+.journal-arrow-head { animation-delay: .9s; }
+@keyframes journal-arrow-draw { to { stroke-dashoffset: 0; } }
 #portfolio .journal-copy-prompt { justify-self: start; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; max-width: 100%; padding: 12px 20px; border: 1px solid var(--paper); border-radius: 6px; background: var(--paper); color: var(--ink); font: 500 .95rem/1.4 'DM Sans', sans-serif; cursor: pointer; }
 #portfolio .journal-copy-prompt:hover { background: var(--ink); color: var(--paper); }
 #portfolio .journal-copy-prompt:disabled { opacity: .6; cursor: wait; }
@@ -357,6 +364,8 @@ html.is-building { overflow: hidden; overflow-anchor: none; }
   .work-grid, .work-lead, .work-archive-grid { grid-template-columns: 1fr; }
   .creative-grid { grid-template-columns: 1fr; }
   .journal-hero-bottom, .journal-skill, .journal-prompt { grid-template-columns: 1fr; gap: 19px; }
+  .journal-copy-cta { justify-self: start; width: min(220px, calc(100vw - 90px)); margin: 72px 0 12px clamp(54px, 18vw, 90px); }
+  .journal-arrow-draw { right: 12px; bottom: 30px; }
   .journal-gallery { grid-template-columns: 1fr; }
   .chapter-head:has(.chapter-label) { grid-template-columns: 1fr; }
   .skill-row { grid-template-columns: 1fr; }
@@ -364,6 +373,10 @@ html.is-building { overflow: hidden; overflow-anchor: none; }
   .skill-row ul { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 4px 0 12px; }
   #portfolio .text-link { display: inline-flex; align-items: center; min-height: 44px; }
   .contact-mail a { display: inline-block; min-height: 44px; padding-block: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journal-arrow-line, .journal-arrow-head { animation: none; stroke-dashoffset: 0; }
 }
 
 @media (max-width: 720px) and (orientation: portrait) {

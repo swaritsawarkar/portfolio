@@ -27,6 +27,7 @@ body.journal-page { --ink: #f3f0e9; --paper: #25241f; margin: 0; background: var
 .journal-hero h1 { max-width: 1000px; font-size: clamp(2.8rem, 7.2vw, 6rem); font-weight: 500; line-height: 1.02; letter-spacing: -.04em; text-wrap: balance; }
 .journal-hero h1 em { font-family: Georgia, serif; font-weight: 400; }
 .journal-page .journal-hero-bottom { align-items: center; }
+.journal-copy-cta { position: relative; justify-self: center; width: min(100%, 240px); margin-top: 62px; }
 .journal-page .journal-copy-status { grid-column: 1 / -1; margin: 0; font-size: .85rem; min-height: 1.5em; }
 .journal-page .journal-velocity { display: none; }
 .journal-page .journal-copy h2 { letter-spacing: -.03em; }
