@@ -41,3 +41,7 @@ Open `/admin/stats` or choose **Stats** after signing in to `/admin/`. The dashb
 ## Logo artwork
 
 `public/logo-outline.png` is the supplied white-on-black S. The renderer extracts its silhouette at source resolution and lights it with a soft matte finish. Both color modes and the reduced-motion still use that same outline.
+
+## Bottom navigation guide
+
+`/journal/bottom-navigation-styles` loads its own React entry. Each standalone example in `src/nav-examples` supplies both the live demo and the copyable raw source. `npm run test:nav` checks the interactions and copied components in an isolated app using installed Chrome. It also writes review screenshots and a thumbnail capture into `dist`; the published thumbnail is in `public/journal`. Run `npm test` and `npm run build` before deployment.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mountJournal } from '../src/journal.js';
+import { journalContent, mountJournal } from '../src/journal.js';
 import config from '../vite.config.js';
 
 test('journal deep links and queries resolve without intercepting other pages', () => {
@@ -9,6 +9,8 @@ test('journal deep links and queries resolve without intercepting other pages', 
   for (const [url, expected] of [
     ['/journal', '/journal/index.html'],
     ['/journal/', '/journal/index.html'],
+    ['/journal/bottom-navigation-styles', '/journal/bottom-navigation-styles/index.html'],
+    ['/journal/bottom-navigation-styles/?from=journal', '/journal/bottom-navigation-styles/index.html?from=journal'],
     ['/journal?from=home', '/journal/index.html?from=home'],
     ['/journal/ai-web-design-skills', '/journal/ai-web-design-skills/index.html'],
     ['/journal/ai-web-design-skills/?from=home', '/journal/ai-web-design-skills/index.html?from=home'],
@@ -52,8 +54,9 @@ test('both copy buttons copy the complete prompt and restore their labels', asyn
     assert.ok(ui.buttons.every((button) => button.disabled && button.textContent === 'Copying…'));
     finish();
     await pending;
-    assert.ok(copied.startsWith('You are a senior frontend engineer'));
-    assert.ok(copied.includes('FINAL GOAL:'));
+    const displayedPrompt = journalContent.match(/id="master-prompt"[\s\S]*?<pre[^>]*><code>([\s\S]*?)<\/code>/)[1];
+    assert.ok(displayedPrompt.length > 1000);
+    assert.equal(copied, displayedPrompt);
     assert.ok(ui.buttons.every((button) => !button.disabled && button.textContent === 'Copied'));
     assert.equal(ui.status.textContent, 'Master prompt copied to clipboard.');
   }
