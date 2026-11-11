@@ -173,8 +173,8 @@ html:has(.work-dialog[open]) { overflow: hidden; }
 .journal-hero-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, .65fr); align-items: end; gap: 32px; margin-top: clamp(24px, 5vw, 60px); }
 .journal-hero-bottom > p { max-width: 58ch; color: var(--muted); font-size: clamp(1rem, 1.8vw, 1.3rem); line-height: 1.6; }
 .journal-copy-cta { position: relative; justify-self: end; width: min(100%, 370px); margin-top: 42px; }
-.journal-copy-cta .journal-copy-prompt { position: relative; z-index: 1; }
-.journal-arrow-draw { position: absolute; width: 224px; height: 140px; right: 38px; bottom: 30px; overflow: visible; color: var(--paper); pointer-events: none; }
+.journal-copy-cta .journal-copy-prompt { position: relative; z-index: 1; min-width: 218px; }
+.journal-arrow-draw { position: absolute; width: 224px; height: 140px; right: 100px; bottom: 30px; overflow: visible; color: var(--paper); pointer-events: none; }
 .journal-arrow-draw path { fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 .journal-arrow-line, .journal-arrow-head { stroke-dasharray: 1; stroke-dashoffset: 1; animation: journal-arrow-draw 1.15s cubic-bezier(.22,.7,.18,1) both; }
 .journal-arrow-head { animation-delay: .9s; }
@@ -365,7 +365,7 @@ html.is-building { overflow: hidden; overflow-anchor: none; }
   .creative-grid { grid-template-columns: 1fr; }
   .journal-hero-bottom, .journal-skill, .journal-prompt { grid-template-columns: 1fr; gap: 19px; }
   .journal-copy-cta { justify-self: start; width: min(220px, calc(100vw - 90px)); margin: 72px 0 12px clamp(54px, 18vw, 90px); }
-  .journal-arrow-draw { right: 12px; bottom: 30px; }
+  .journal-arrow-draw { right: 100px; bottom: 30px; }
   .journal-gallery { grid-template-columns: 1fr; }
   .chapter-head:has(.chapter-label) { grid-template-columns: 1fr; }
   .skill-row { grid-template-columns: 1fr; }
