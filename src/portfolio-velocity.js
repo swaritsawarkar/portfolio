@@ -3,9 +3,9 @@ import './portfolio-velocity.css';
 const layers = [
   { selector: '.hero-type', distance: 19, shear: .28 },
   { selector: '.portrait', distance: -26, shear: 0 },
-  { selector: '.chapter-head h2', distance: 22, shear: .48 },
-  { selector: '.work-feature, .creative-grid > figure, .journal-shot', distance: -14, shear: .16 },
-  { selector: '.timeline-year > strong', distance: 11, shear: 0 },
+  { selector: '.chapter-head > *', distance: 22, shear: .32 },
+  { selector: '.work-feature, .creative-grid > figure, .journal-shot, .work-archive-item, .win-photo', distance: -14, shear: .16 },
+  { selector: '.work-caption > *, .work-links > *, .about-grid > *, .skill-row > *, .timeline-year > *, .contact-grid > *', distance: 11, shear: .08 },
 ];
 
 export function mountPortfolioVelocity(portfolio, reducedMotion) {
@@ -13,6 +13,14 @@ export function mountPortfolioVelocity(portfolio, reducedMotion) {
   const body = document.body;
   const compact = matchMedia('(max-width: 720px)');
   const targets = new Map();
+  const observeTargets = (node) => {
+    if (!(node instanceof Element)) return;
+    for (const { selector, distance, shear } of layers) {
+      if (!node.matches(selector)) continue;
+      targets.set(node, { distance: distance * (targets.size % 2 ? .82 : 1), shear });
+      viewport.observe(node);
+    }
+  };
   for (const { selector, distance, shear } of layers) {
     for (const [index, node] of [...portfolio.querySelectorAll(selector)].entries()) {
       targets.set(node, { distance: distance * (index % 2 ? .82 : 1), shear });
@@ -94,6 +102,13 @@ export function mountPortfolioVelocity(portfolio, reducedMotion) {
     }
   }, { rootMargin: '100px 0px' });
   targets.forEach((_, node) => viewport.observe(node));
+  const addedContent = new MutationObserver((entries) => {
+    for (const { addedNodes } of entries) for (const node of addedNodes) {
+      observeTargets(node);
+      if (node instanceof Element) node.querySelectorAll(layers.map(({selector}) => selector).join(',')).forEach(observeTargets);
+    }
+  });
+  addedContent.observe(portfolio, { childList: true, subtree: true });
 
   // Intro and theme changes may move the scroll position in the same frame.
   // Clearing the previous sample prevents that jump from turning into motion.
@@ -107,6 +122,7 @@ export function mountPortfolioVelocity(portfolio, reducedMotion) {
 
   return () => {
     viewport.disconnect();
+    addedContent.disconnect();
     lifecycle.disconnect();
     window.removeEventListener('scroll', onScroll);
     document.removeEventListener('visibilitychange', reset);
