@@ -157,8 +157,9 @@ try {
   for (const width of [533, 390, 320]) {
     await page.setViewportSize({ width, height: 800 });
     const mobileCopy = page.locator('.journal-copy-cta .journal-copy-prompt').first();
-    const layout = await mobileCopy.evaluate((button) => ({ height: button.getBoundingClientRect().height, width: button.getBoundingClientRect().width, parentWidth: button.parentElement.getBoundingClientRect().width, arrow: getComputedStyle(document.querySelector('.journal-arrow-draw')).display, pageWidth: document.documentElement.scrollWidth }));
+    const layout = await mobileCopy.evaluate((button) => ({ x: button.getBoundingClientRect().x, parentX: button.parentElement.getBoundingClientRect().x, height: button.getBoundingClientRect().height, width: button.getBoundingClientRect().width, parentWidth: button.parentElement.getBoundingClientRect().width, arrow: getComputedStyle(document.querySelector('.journal-arrow-draw')).display, pageWidth: document.documentElement.scrollWidth }));
     assert.ok(layout.height <= 58, `copy button label stays on one line at ${width}px`);
+    assert.ok(Math.abs(layout.x - layout.parentX) <= 1, `copy button aligns with its content at ${width}px`);
     assert.ok(layout.width <= layout.parentWidth, `copy button fits its container at ${width}px`);
     assert.equal(layout.arrow, 'none', `decorative arrow is hidden at ${width}px`);
     assert.ok(layout.pageWidth <= width, `article has no horizontal overflow at ${width}px`);
