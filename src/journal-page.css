@@ -19,7 +19,6 @@ body.journal-page { --ink: #f3f0e9; --paper: #25241f; margin: 0; background: var
 .journal-entry h2 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(1.9rem, 3.5vw, 3rem); line-height: 1.12; letter-spacing: -.03em; text-wrap: balance; }
 #portfolio .journal-entry p { margin-top: 20px; color: var(--muted); max-width: 48ch; }
 .entry-read { display: inline-block; margin-top: 24px; text-decoration: underline; text-underline-offset: .28em; }
-.entry-topic { font-size: .85rem; }
 .journal-footer { border-top: 1px solid var(--rule); margin-top: 64px; padding-block: 28px; font-size: .85rem; }
 .skip-link { position: absolute; top: -80px; left: 24px; padding: 12px; background: var(--ink); z-index: 5; }
 .skip-link:focus { top: 12px; }

@@ -243,8 +243,7 @@ function groupByView(scene, pieces) {
     }
     const batch = batches.get(key);
     if (photo) {
-      const caption = photo.querySelector('figcaption');
-      batch.top = Math.max(batch.top, pageTop(caption) + caption.offsetHeight - innerHeight * .83);
+      batch.top = Math.max(batch.top, pageTop(photo) + photo.offsetHeight - innerHeight * .83);
     }
     batch.pieces.push(piece);
   }

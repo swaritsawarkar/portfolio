@@ -11,21 +11,18 @@
 .demo-row { display:flex; gap:8px; align-items:flex-end; }
 .demo-row > div { flex:1; min-width:0; }
 .copy-component { flex:0 0 54px; margin-bottom:24px; padding:9px 3px; border:1px solid #5e5a51; border-radius:6px; min-height:48px; background:transparent; color:#25241f; font:600 12px/1.3 'DM Sans',sans-serif; cursor:pointer; }
-.copy-component span { display:block; font-size:10px; font-weight:400; margin-top:3px; }
 .copy-component:hover { background:#25241f; color:#f3f0e9; }
 .copy-component:disabled { cursor:wait; opacity:.6; }
 .demo-row [class^="bn-"] .stage { overflow-x:auto; }
 .demo-row [class^="bn-"] nav { min-width:252px; }
 .component-status { min-height:2.8em; font-size:.8rem; }
 .source-side { min-width:0; }
-.source-caption { display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:.74rem; padding:12px 0; color:var(--muted); }
 .nav-guide pre { white-space:pre; overflow:auto; max-width:100%; border:1px solid var(--rule); padding:20px; background:#ebe7dd; font:12px/1.7 ui-monospace,monospace; scrollbar-color:#969080 #ebe7dd; }
 .source-side pre { height:400px; margin:0; }
 .guide-ending { max-width:none; }
 .guide-ending h2 { margin-top:32px !important; }
 .comparison-scroll { overflow:auto; margin-top:28px; }
 .guide-ending table { border-collapse:collapse; width:100%; font-size:.9rem; text-align:left; }
-.guide-ending caption { text-align:left; color:var(--muted); margin-bottom:16px; }
 .guide-ending td, .guide-ending th { padding:16px 12px; border-bottom:1px solid var(--rule); min-width:140px; }
 @media(max-width:900px) { .example-columns { grid-template-columns:1fr; gap:24px; } .preview-side { position:static; } .source-side pre { height:320px; } }
 @media(prefers-reduced-motion:reduce) { .nav-guide *, .nav-guide *::before, .nav-guide *::after { scroll-behavior:auto !important; } }

@@ -2,7 +2,5 @@
 .spatial-article .journal-copy-cta { margin-top: 0; }
 .spatial-reference { margin: 12px 0 28px; }
 .spatial-reference img { display: block; width: 100%; height: auto; }
-.spatial-reference figcaption { margin-top: 12px; max-width: 75ch; color: var(--muted); font-size: .85rem; line-height: 1.6; }
-.spatial-reference a { color: var(--paper); text-underline-offset: .2em; }
 .spatial-small-reference { max-width: 420px; }
 .spatial-article a:focus-visible { outline: 2px solid var(--paper); outline-offset: 5px; }

@@ -64,14 +64,10 @@ html[data-edition="light"] #portfolio { --accent: #4d650f; }
 .chapter-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: clamp(28px, 4vw, 55px); }
 .chapter h2 { font-size: clamp(3rem, 7vw, 7.6rem); line-height: 1; }
 .chapter-head p { max-width: 32ch; color: var(--muted); line-height: 1.4; padding-bottom: 2px; }
-.chapter-head:has(.chapter-label) { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px 28px; }
-.chapter-label { grid-column: 1 / -1; justify-self: start; color: var(--accent); font-size: .85rem; font-weight: 500; letter-spacing: .025em; }
-.chapter-head:has(.chapter-label) h2 { font-size: clamp(3.2rem, 7.1vw, 7.3rem); font-weight: 500; }
 .creative-grid, .media-grid { display: grid; grid-template-columns: 1.22fr 1fr; gap: clamp(14px, 1.8vw, 30px); }
 .media-frame { overflow: hidden; border: 1px solid var(--rule); }
 .media-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .creative-grid img { object-fit: contain; }
-#portfolio figcaption { padding-top: 9px; line-height: 1.3; }
 #portfolio .text-link { display: inline-block; margin-top: 14px; padding: 6px 12px; border: 1px solid var(--rule); text-decoration: none; font-size: .9rem; font-weight: 500; }
 #portfolio .text-link:hover { border-color: var(--paper); opacity: 1; }
 #work { border-top: 0; }
@@ -92,10 +88,9 @@ html[data-edition="light"] #portfolio { --accent: #4d650f; }
 }
 .work-lead .work-image { aspect-ratio: 1849 / 829; background: #0a1321; }
 .work-image img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
-.work-caption { flex: 1; display: grid; align-content: start; grid-template-rows: auto auto 1fr auto; gap: 7px; }
+.work-caption { flex: 1; display: grid; align-content: start; grid-template-rows: auto 1fr auto; gap: 7px; }
 .work-caption h3 { font-size: clamp(1.85rem, 4vw, 4.25rem); line-height: 1; letter-spacing: -.06em; }
 .work-lead h3 { font-size: clamp(2.25rem, 4.3vw, 5rem); }
-.work-metric { color: var(--accent); font-weight: 600; font-size: clamp(.92rem, 1.55vw, 1.35rem); font-variant-numeric: tabular-nums; }
 .work-summary { color: var(--muted); max-width: 51ch; text-wrap: pretty; padding-top: 3px; }
 .work-links { display: flex; flex-wrap: wrap; gap: 0 clamp(15px, 1.8vw, 27px); margin-top: 6px; }
 #portfolio .work-links a, .work-more, .work-back, .work-close {
@@ -145,7 +140,6 @@ html:has(.work-dialog[open]) { overflow: hidden; }
 .work-archive-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
 .work-archive-item strong { font-size: 1.17rem; line-height: 1.2; }
 .work-archive-item small, .work-archive-item p { color: var(--muted); }
-.work-archive-item small { font-size: .72rem; letter-spacing: .06em; }
 .work-archive-item p { font-size: .88rem; }
 .work-dialog .media-frame { border: 0; }
 .creative-archive { border-bottom: 1px solid var(--rule); }
@@ -208,18 +202,12 @@ html:has(.work-dialog[open]) { overflow: hidden; }
 .journal-repo-preview a { display: block; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; background: #fff; }
 .journal-repo-preview img { display: block; width: 100%; height: auto; }
 .journal-repo-preview .repo-logo { height: 200px; object-fit: contain; padding: 34px; }
-.journal-repo-preview figcaption { margin-top: 10px; color: var(--muted); font-size: .75rem; line-height: 1.5; }
 .journal-copy-status:empty { display: none; }
-.journal-kicker { color: var(--accent); font-size: .76rem; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
 .journal-deck { color: var(--paper); font-family: Georgia, serif; font-size: clamp(1.2rem, 2.4vw, 2rem); }
 .journal-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(14px, 2vw, 26px); margin: 30px 0 clamp(38px, 6vw, 82px); }
 .journal-shot .media-frame { background: #eee; }
 .journal-shot img { display: block; width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; transition: transform 600ms cubic-bezier(.2,.7,.2,1); }
 .journal-shot:hover img { transform: scale(1.025); }
-.journal-shot figcaption { display: grid; grid-template-columns: auto 1fr; gap: 3px 11px; align-items: baseline; padding-top: 11px; }
-.journal-index { grid-row: 1 / 3; color: var(--accent); font-size: .7rem; }
-.journal-shot figcaption strong { color: var(--paper); font-weight: 500; }
-.journal-shot figcaption > span:last-child { color: var(--muted); font-size: .83rem; }
 .journal-prompt { display: grid; grid-template-columns: minmax(130px, .38fr) minmax(0, 1.62fr); gap: clamp(20px, 5vw, 72px); padding: clamp(38px, 6vw, 82px) 0; border-top: 1px solid var(--rule); }
 .journal-last-line { color: var(--paper); font-family: Georgia, serif; font-size: clamp(1.4rem, 3vw, 2.2rem); font-style: italic; }
 .journal-copy-status { min-height: 1.5em; font-size: .8rem; }
@@ -250,9 +238,6 @@ html:has(.work-dialog[open]) { overflow: hidden; }
   border: 0;
 }
 .win-photo img { object-fit: contain; }
-.win-photo figcaption { min-height: 64px; margin-top: 12px; padding: 0 0 12px; }
-.win-photo strong { display: block; font-size: clamp(1.1rem, 2.05vw, 1.8rem); font-weight: 500; line-height: 1.17; letter-spacing: -.035em; }
-.win-photo figcaption > span { display: block; margin-top: 5px; color: var(--muted); font-size: .86rem; }
 .wins-controls { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--rule); padding-top: 10px; }
 .wins-controls > div { display: flex; gap: 8px; }
 .wins-controls button { width: 46px; height: 44px; border: 1px solid var(--rule); background: transparent; color: inherit; font-size: 1.18rem; cursor: pointer; }
@@ -381,7 +366,6 @@ html.is-building { overflow: hidden; overflow-anchor: none; }
   .journal-arrow-draw { display: none; }
   .journal-gallery, .journal-skill.has-repo-image { grid-template-columns: 1fr; }
   .journal-repo-preview { max-width: 420px; }
-  .chapter-head:has(.chapter-label) { grid-template-columns: 1fr; }
   .skill-row { grid-template-columns: 1fr; }
   #portfolio .skill-row h3 { border-right: 0; padding: 12px 0 0; }
   .skill-row ul { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 4px 0 12px; }

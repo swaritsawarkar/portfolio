@@ -12,25 +12,20 @@ const escape = (value = '') => String(value).replace(/[&<>"']/g, (char) =>
 const arrow = '<span aria-hidden="true">↗</span>';
 const link = (text, href, attributes = '') => '<a href="' + escape(href) + '" ' + attributes + '>' + escape(text) + '</a>';
 
-function frame(src, alt, caption, className = '') {
-  return '<figure class="' + className + '"><div class="media-frame" data-part="media"><img src="' + escape(src) +
-    '" alt="' + escape(alt) + '" loading="lazy" decoding="async"></div><figcaption data-part="copy" data-build-after="media">' +
-    escape(caption) + '</figcaption></figure>';
+function frame(src, alt) {
+  return '<figure><div class="media-frame" data-part="media"><img src="' + escape(src) +
+    '" alt="' + escape(alt) + '" loading="lazy" decoding="async"></div></figure>';
 }
 
-function chapter(id, title, description, content, label) {
+function chapter(id, title, description, content) {
   return '<section class="chapter" id="' + id + '" data-scene aria-labelledby="' + id + '-title">' +
-    '<header class="chapter-head">' + (label ? '<span class="chapter-label" data-part="copy">' + label + '</span>' : '') +
+    '<header class="chapter-head">' +
     '<h2 id="' + id + '-title" data-part="type">' + title +
     '</h2>' + (description ? '<p data-part="copy">' + description + '</p>' : '') + '</header>' + content + '</section>';
 }
 
 const featured = ['strikeout-os', 'pixelcut-pro', '10thhojayega']
   .map((slug) => projects.find((project) => project.slug === slug));
-const highlights = {
-  'strikeout-os': 'MU20 Hackathon winner · ₹35,000 prize',
-  '10thhojayega': '300 users',
-};
 const mu20Win = 'MU20 Hackathon winner with STRIKEOUT · ₹35,000 prize.';
 const wins = [
   ['mu20', 1500, 2000, mu20Win],
@@ -43,12 +38,11 @@ const wins = [
 const photoRatio = ([, width, height]) => width / height;
 
 function winPhoto(entry, index) {
-  const [file, width, height, title, note] = entry;
+  const [file, width, height, title] = entry;
   const src = photo(file + '.webp');
   return '<figure class="win-photo" style="--photo-ratio:' + photoRatio(entry) + ';--slide-progress:' +
     index / (wins.length - 1) + '"><div class="media-frame" data-part="media"><img src="' + src + '" alt="' + escape(title) + '" width="' + width +
-    '" height="' + height + '" loading="lazy" decoding="async"></div><figcaption data-part="copy" data-build-after="media"><strong>' + escape(title) +
-    '</strong>' + (note ? '<span>' + escape(note) + '</span>' : '') + '</figcaption></figure>';
+    '" height="' + height + '" loading="lazy" decoding="async"></div></figure>';
 }
 const timeline = [
   ['2023', ['Entered boarding school', 'NUS + NTU Data Science Workshop', 'SGFI football · state level']],
@@ -84,17 +78,16 @@ function projectDetails(project) {
     (project.features?.length ? '<ul>' + project.features.map((feature) => '<li>' + escape(feature) + '</li>').join('') + '</ul>' : '') +
     '<p class="stack">' + escape(project.stack.join(' / ')) + '</p><div class="inline-links">' +
     project.links.map(({label, href}) => link(label, href)).join('') + '</div>' +
-    (media.length ? '<div class="media-grid">' + media.map(({src, alt, caption}) => frame(src, alt, caption)).join('') + '</div>' : '') +
+    (media.length ? '<div class="media-grid">' + media.map(({src, alt}) => frame(src, alt)).join('') + '</div>' : '') +
     '</div>';
 }
 
-function feature({slug, media, name, summary, links, status}) {
+function feature({slug, media, name, summary, links}) {
   const lead = slug === 'strikeout-os';
   const [image] = media;
   return '<article class="work-feature' + (lead ? ' work-lead' : '') + '">' +
     '<div class="work-image" data-part="frame"><img data-part="media" src="' + escape(image.src) + '" alt="' + escape(image.alt) +
     '" loading="lazy" decoding="async"></div><div class="work-caption">' +
-    '<p class="work-metric" data-part="copy">' + escape(highlights[slug] ?? status) + '</p>' +
     '<h3 data-part="type">' + escape(name) + '</h3>' +
     '<p class="work-summary" data-part="copy">' + escape(summary) + '</p>' +
     '<div class="work-links">' +
@@ -114,7 +107,7 @@ function mountWorkDialogs(root) {
     const image = project.media?.find(({kind}) => kind === 'image');
     return '<a href="#' + escape(project.slug) + '" data-project class="work-archive-item">' +
       (image ? '<img src="' + escape(image.src) + '" alt="' + escape(image.alt) + '" loading="lazy">' : '') +
-      '<small>' + escape(project.status) + '</small><strong>' + escape(project.name) + '</strong><p>' +
+      '<strong>' + escape(project.name) + '</strong><p>' +
       escape(project.summary) + '</p></a>';
   }).join('') + '</div>';
   let opener;
@@ -185,11 +178,11 @@ export function mountPortfolio(root) {
     '<form method="dialog"><button class="work-close" aria-label="Close project panel">Close <span aria-hidden="true">×</span></button></form>' +
     '</header><div class="work-dialog-content"></div></dialog>';
   const creative = '<div class="creative-grid">' +
-    frame(genZCoverItem.src, genZCoverItem.alt, genZCoverItem.caption) +
-    frame(davinciTeamSeries[0].src, davinciTeamSeries[0].alt, davinciTeamSeries[0].caption) + '</div>' +
+    frame(genZCoverItem.src, genZCoverItem.alt) +
+    frame(davinciTeamSeries[0].src, davinciTeamSeries[0].alt) + '</div>' +
     '<details class="creative-archive"><summary data-part="copy">DaVinci design archive <span aria-hidden="true">+</span></summary>' +
     '<div class="media-grid">' + [...davinciPanels, ...davinciPosterSeries, ...davinciTeamSeries.slice(1)]
-      .map(({src, alt, caption}) => frame(src, alt, caption)).join('') + '</div></details>';
+      .map(({src, alt}) => frame(src, alt)).join('') + '</div></details>';
   const about = '<div class="about-grid"><h3 class="statement" data-part="copy">I build things, race drones, and turn ideas into reality.</h3>' +
     '<div class="about-copy"><p data-part="copy">I\'m Swarit Sawarkar, a 15-year-old developer, maker, and creative. ' +
     'My interests span AI, coding, software development, robotics, FPV drones, video editing, and digital design. ' +
@@ -236,8 +229,8 @@ export function mountPortfolio(root) {
     chapter('journal', 'Journal.', 'Notes on design, tools, and things I’m building.',
       '<a class="text-link" href="/journal" data-part="link">Read the journal ↗</a>') +
     chapter('about', 'About.', '<strong>Developer · FPV Enthusiast · Creator</strong>', about) +
-    chapter('achievements', 'Field notes.', 'Photos from competitions and events.', achievements, 'Achievements') +
-    chapter('timeline', 'Along the way.', 'School, competitions, and projects since 2023.', history, 'Timeline') +
+    chapter('achievements', 'Field notes.', 'Photos from competitions and events.', achievements) +
+    chapter('timeline', 'Along the way.', 'School, competitions, and projects since 2023.', history) +
     chapter('skills', 'Skills.', '', stack) +
     chapter('signatures', 'Sign the wall.', 'Draw anywhere there’s room and leave your name under your mark.', signingWall) +
     chapter('contact', 'Contact.', 'Get in touch.', contact) + '</main>';

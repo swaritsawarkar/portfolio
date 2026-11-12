@@ -61,10 +61,10 @@ function Example({ entry }) {
     <header><h2 id={`${slug}-heading`}>{title}</h2><p>{usage}</p></header>
     <div className="example-columns">
       <div className="preview-side">
-        <div className="demo-row"><Component /><button className="copy-component" type="button" onClick={copy} disabled={copying} aria-label={`Copy React component: ${title}`} title="Copy complete React component">{copying ? 'Copying' : status.startsWith('Copied') ? 'Copied' : 'Copy'}<span>React</span></button></div>
+        <div className="demo-row"><Component /><button className="copy-component" type="button" onClick={copy} disabled={copying} aria-label={`Copy React component: ${title}`} title="Copy complete React component">{copying ? 'Copying' : status.startsWith('Copied') ? 'Copied' : 'Copy'}</button></div>
         <p role="status" className="component-status">{status}</p>
       </div>
-      <div className="source-side"><div className="source-caption"><span>{code.match(/export default function (\w+)/)[1]}.jsx</span><span>Complete component</span></div><pre ref={pre} tabIndex="0" aria-label={`${title} React source`}><code>{code}</code></pre></div>
+      <div className="source-side"><pre ref={pre} tabIndex="0" aria-label={`${title} React source`}><code>{code}</code></pre></div>
     </div>
   </section>;
 }
@@ -72,7 +72,7 @@ function Example({ entry }) {
 function Guide() {
   return <>
     {styles.map((entry) => <Example key={entry[0]} entry={entry} />)}
-    <section className="guide-ending"><h2>Choose by the job.</h2><div className="comparison-scroll"><table><caption>A starting point for choosing a bottom navigation style</caption><thead><tr><th>Style</th><th>Reach for it when…</th></tr></thead><tbody>{[
+    <section className="guide-ending"><h2>Choose by the job.</h2><div className="comparison-scroll"><table aria-label="A starting point for choosing a bottom navigation style"><thead><tr><th>Style</th><th>Reach for it when…</th></tr></thead><tbody>{[
       ["Minimal", "Content needs the attention"],
       ["Floating pill", "Navigation should sit apart from content"],
       ["Pill highlight", "Selection needs to be unmistakable"],
