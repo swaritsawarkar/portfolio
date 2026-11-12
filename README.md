@@ -47,3 +47,7 @@ Open `/admin/stats` or choose **Stats** after signing in to `/admin/`. The dashb
 `/journal/bottom-navigation-styles` loads its own React entry. Each standalone example in `src/nav-examples` supplies both the live demo and the copyable raw source. `npm run test:nav` checks the interactions and copied components in an isolated app using installed Chrome. It also writes review screenshots and a thumbnail capture into `dist`; the published thumbnail is in `public/journal`. Run `npm test` and `npm run build` before deployment.
 
 The guide hero uses two inert copies of the real navigation previews. Its single animation loop pauses offscreen, in background tabs, for reduced motion, and with the visible pause control. Desktop columns become horizontal rows below 1100px; scrolling briefly increases their speed.
+
+## 3D websites article
+
+`/journal/3d-websites` is a static, directly readable article using three supplied website references. It distinguishes screenshot observations from verified implementation and links to this portfolio’s WebGL and scroll-motion source. Its copy buttons reuse the existing journal handler with the article’s own prompt. Keep the quoted source excerpt aligned with `src/main.js`.

@@ -10,6 +10,8 @@ test('journal deep links and queries resolve without intercepting other pages', 
     ['/journal', '/journal/index.html'],
     ['/journal/', '/journal/index.html'],
     ['/journal/bottom-navigation-styles', '/journal/bottom-navigation-styles/index.html'],
+    ['/journal/3d-websites', '/journal/3d-websites/index.html'],
+    ['/journal/3d-websites/?from=journal', '/journal/3d-websites/index.html?from=journal'],
     ['/journal/bottom-navigation-styles/?from=journal', '/journal/bottom-navigation-styles/index.html?from=journal'],
     ['/journal?from=home', '/journal/index.html?from=home'],
     ['/journal/ai-web-design-skills', '/journal/ai-web-design-skills/index.html'],
@@ -27,7 +29,7 @@ test('journal deep links and queries resolve without intercepting other pages', 
   }
 });
 
-function setup(writeText) {
+function setup(writeText, promptText) {
   const buttons = [{ textContent: 'Copy the master prompt' }, { textContent: 'Copy the master prompt' }];
   const status = { setAttribute() {} };
   let focused = false;
@@ -41,9 +43,16 @@ function setup(writeText) {
   };
   globalThis.document = { createElement: () => status };
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { clipboard: { writeText } } });
-  mountJournal(root);
+  mountJournal(root, promptText);
   return { buttons, status, focused: () => focused, click: (index) => click({ target: { closest: () => buttons[index] } }) };
 }
+
+test('a new article copies its own prompt instead of the design skills prompt', async () => {
+  let copied;
+  const ui = setup(async (text) => { copied = text; }, 'Build a readable website with one purposeful 3D interaction.');
+  await ui.click(0);
+  assert.equal(copied, 'Build a readable website with one purposeful 3D interaction.');
+});
 
 test('both copy buttons copy the complete prompt and restore their labels', async () => {
   let copied;

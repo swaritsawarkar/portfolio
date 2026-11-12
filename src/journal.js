@@ -121,7 +121,7 @@ export const journalContent = '<header class="journal-hero">' +
   '<section class="journal-skill"><p class="journal-kicker" data-part="copy">A few things worth knowing</p><div class="journal-copy" data-part="copy"><h2>Useful tools, not magic.</h2><ol><li><strong>These are agent skills, not magic prompts.</strong> They work with compatible coding tools that can load instructions and access your project. Typing their names into a normal chat does not install them.</li><li><strong>Not every project needs all four.</strong> Frontend Design might be enough for a quick landing page; Impeccable may be more useful on a site that already exists.</li><li><strong>More animation is not automatically better.</strong> Two useful scroll effects can be better than twenty. Removing clutter can do more than adding another library.</li><li><strong>Do not blindly trust the output.</strong> Review unfamiliar installation commands and test what your agent produces. A skill guides the agent; it does not guarantee the result.</li></ol></div></section>' +
   '<section class="journal-skill journal-ending"><p class="journal-kicker" data-part="copy">Final thoughts</p><div class="journal-copy" data-part="copy"><h2>Generate less. <em>Design better.</em></h2><p>AI has made building websites ridiculously accessible. But generating a website and designing a good one are different things. You can have perfect code and a completely forgettable interface.</p><p>These four skills give coding agents more direction around design, consistency, refinement, and usability. Study websites you like. Figure out what makes their typography, layouts, and interactions work. Then build something of your own.</p><p class="journal-last-line">Don’t just generate more websites. Build better ones.</p><p>If you found this through my Instagram carousel, that’s the complete setup. More website designs, presets, prompts, and tools coming soon.</p><p><strong>Swarit Sawarkar</strong><br><a href="https://swaritsawarkar.s3r0.com">swaritsawarkar.s3r0.com ↗</a><br><em>Part of the S3R0 website design series.</em></p></div></section></div>';
 
-export function mountJournal(root) {
+export function mountJournal(root, promptText = prompt) {
   const status = document.createElement('p');
   status.className = 'journal-copy-status';
   status.setAttribute('role', 'status');
@@ -140,7 +140,7 @@ export function mountJournal(root) {
     clearTimeout(resetTimer);
     buttons.forEach((item) => { item.textContent = 'Copying…'; item.disabled = true; });
     try {
-      await navigator.clipboard.writeText(prompt);
+      await navigator.clipboard.writeText(promptText);
       buttons.forEach((item) => { item.textContent = 'Copied'; });
       status.textContent = 'Master prompt copied to clipboard.';
     } catch {
