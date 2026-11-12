@@ -5,7 +5,8 @@ const layers = [
   { selector: '.hero-type', distance: 19, shear: .28 },
   { selector: '.portrait', distance: -26, shear: 0 },
   { selector: '.chapter-head > *', distance: 22, shear: .32 },
-  { selector: '.work-feature, .creative-grid > figure, .journal-shot, .work-archive-item, .win-photo, .spatial-reference', distance: -22, shear: .2 },
+  { selector: '.work-feature, .creative-grid > figure, .work-archive-item, .win-photo', distance: -14, shear: .16 },
+  { selector: '.journal-shot, .spatial-reference', distance: -22, shear: .2 },
   { selector: '.work-caption > *, .work-links > *, .about-grid > *, .skill-row > *, .timeline-year > *, .contact-grid > *', distance: 11, shear: .08 },
 ];
 
