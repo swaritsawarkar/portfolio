@@ -138,18 +138,18 @@ export function mountJournal(root, promptText = prompt) {
     if (!button) return;
     const buttons = root.querySelectorAll('[data-copy-prompt]');
     clearTimeout(resetTimer);
-    buttons.forEach((item) => { item.textContent = 'Copying…'; item.disabled = true; });
+    buttons.forEach((item) => { item.textContent = 'Copying…'; item.disabled = true; item.dataset.copyState = 'loading'; });
     try {
       await navigator.clipboard.writeText(promptText);
-      buttons.forEach((item) => { item.textContent = 'Copied'; });
+      buttons.forEach((item) => { item.textContent = 'Copied'; item.dataset.copyState = 'success'; });
       status.textContent = 'Master prompt copied to clipboard.';
     } catch {
-      buttons.forEach((item) => { item.textContent = 'Try copying again'; });
+      buttons.forEach((item) => { item.textContent = 'Try copying again'; item.dataset.copyState = 'error'; });
       status.textContent = 'Clipboard access failed. Select the prompt below and copy it manually.';
       root.querySelector('#master-prompt pre').focus();
     } finally {
       buttons.forEach((item) => { item.disabled = false; });
-      resetTimer = setTimeout(() => buttons.forEach((item) => { item.textContent = 'Copy the master prompt'; }), 2200);
+      resetTimer = setTimeout(() => buttons.forEach((item) => { item.textContent = 'Copy the master prompt'; item.dataset.copyState = 'idle'; }), 2200);
     }
   });
 }

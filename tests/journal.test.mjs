@@ -30,7 +30,7 @@ test('journal deep links and queries resolve without intercepting other pages', 
 });
 
 function setup(writeText, promptText) {
-  const buttons = [{ textContent: 'Copy the master prompt' }, { textContent: 'Copy the master prompt' }];
+  const buttons = [{ textContent: 'Copy the master prompt', dataset: {} }, { textContent: 'Copy the master prompt', dataset: {} }];
   const status = { setAttribute() {} };
   let focused = false;
   let click;
@@ -61,16 +61,19 @@ test('both copy buttons copy the complete prompt and restore their labels', asyn
   for (const index of [0, 1]) {
     const pending = ui.click(index);
     assert.ok(ui.buttons.every((button) => button.disabled && button.textContent === 'Copying…'));
+    assert.ok(ui.buttons.every((button) => button.dataset.copyState === 'loading'));
     finish();
     await pending;
     const displayedPrompt = journalContent.match(/id="master-prompt"[\s\S]*?<pre[^>]*><code>([\s\S]*?)<\/code>/)[1];
     assert.ok(displayedPrompt.length > 1000);
     assert.equal(copied, displayedPrompt);
     assert.ok(ui.buttons.every((button) => !button.disabled && button.textContent === 'Copied'));
+    assert.ok(ui.buttons.every((button) => button.dataset.copyState === 'success'));
     assert.equal(ui.status.textContent, 'Master prompt copied to clipboard.');
   }
   await new Promise((resolve) => setTimeout(resolve, 2300));
   assert.ok(ui.buttons.every((button) => button.textContent === 'Copy the master prompt'));
+  assert.ok(ui.buttons.every((button) => button.dataset.copyState === 'idle'));
 });
 
 test('either button handles clipboard rejection and focuses the manual fallback', async () => {
@@ -78,6 +81,7 @@ test('either button handles clipboard rejection and focuses the manual fallback'
   for (const index of [0, 1]) {
     await ui.click(index);
     assert.ok(ui.buttons.every((button) => !button.disabled && button.textContent === 'Try copying again'));
+    assert.ok(ui.buttons.every((button) => button.dataset.copyState === 'error'));
     assert.match(ui.status.textContent, /copy it manually/);
     assert.equal(ui.focused(), true);
   }

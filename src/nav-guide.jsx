@@ -4,6 +4,8 @@ import './portfolio.css';
 import './journal-page.css';
 import './nav-guide.css';
 import { mountNavHeroMotion } from './nav-hero-motion.js';
+import { mountPortfolioVelocity } from './portfolio-velocity.js';
+import './glass-controls.css';
 
 const components = import.meta.glob('./nav-examples/*.jsx', { eager: true, import: 'default' });
 const sources = import.meta.glob('./nav-examples/*.jsx', { eager: true, query: '?raw', import: 'default' });
@@ -61,7 +63,7 @@ function Example({ entry }) {
     <header><h2 id={`${slug}-heading`}>{title}</h2><p>{usage}</p></header>
     <div className="example-columns">
       <div className="preview-side">
-        <div className="demo-row"><Component /><button className="copy-component" type="button" onClick={copy} disabled={copying} aria-label={`Copy React component: ${title}`} title="Copy complete React component">{copying ? 'Copying' : status.startsWith('Copied') ? 'Copied' : 'Copy'}</button></div>
+        <div className="demo-row"><Component /><button className="copy-component" type="button" onClick={copy} disabled={copying} data-copy-state={copying ? 'loading' : status.startsWith('Copied') ? 'success' : 'idle'} aria-label={status.startsWith('Copied') && !copying ? `Copied React component: ${title}` : `Copy React component: ${title}`} title="Copy complete React component">{copying ? 'Copying' : status.startsWith('Copied') ? 'Copied' : 'Copy'}</button></div>
         <p role="status" className="component-status">{status}</p>
       </div>
       <div className="source-side"><pre ref={pre} tabIndex="0" aria-label={`${title} React source`}><code>{code}</code></pre></div>
@@ -89,3 +91,4 @@ function Guide() {
 
 createRoot(document.querySelector('#nav-guide-examples')).render(<Guide />);
 createRoot(document.querySelector('.nav-hero')).render(<Hero />);
+mountPortfolioVelocity(document.body, matchMedia('(prefers-reduced-motion: reduce)'));

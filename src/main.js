@@ -6,6 +6,7 @@ import { mountPortfolio } from './portfolio.js';
 import { createBuildSequence } from './build-sequence.js';
 import { mountPortfolioVelocity } from './portfolio-velocity.js';
 import { mountPortfolioAnalytics, track as trackActivity } from './portfolio-analytics.js';
+import './glass-controls.css';
 
 const track = document.querySelector('.intro-track');
 const outro = document.querySelector('.outro-track');

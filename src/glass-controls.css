@@ -1,0 +1,64 @@
+#portfolio :is(a[href], button, summary):not(:where(.skip-link, .journal-entry-link, .journal-repo-preview a, .work-archive-item, .hero-rail *, .demo-row [class^="bn-"] *)),
+.build-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, var(--paper, #f3f0e9) 24%, transparent);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff38, #ffffff08), color-mix(in srgb, var(--ink, #25241f) 72%, transparent);
+  color: var(--paper, #f3f0e9);
+  box-shadow: inset 0 1px 0 #ffffff55, 0 6px 16px #00000012, 0 16px 32px #0000000d;
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+  text-decoration: none;
+  text-align: center;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: translate 180ms ease, box-shadow 180ms ease, background-color 180ms ease, width 280ms ease, border-radius 280ms ease;
+}
+#portfolio :is(a[href], button, summary):not(:where(.skip-link, .journal-entry-link, .journal-repo-preview a, .work-archive-item, .hero-rail *, .demo-row [class^="bn-"] *)):hover,
+.build-controls button:hover {
+  translate: 0 -2px;
+  box-shadow: inset 0 1px 0 #ffffff88, 0 10px 24px #00000020, 0 20px 40px #0000000d;
+}
+#portfolio :is(a[href], button, summary):focus-visible { outline: 2px solid var(--paper); outline-offset: 4px; }
+#portfolio :is(a[href], button, summary):active { translate: 0 1px; }
+#portfolio button:disabled { cursor: wait; opacity: .6; translate: none; }
+#portfolio .journal-copy-cta { justify-self: start; }
+#portfolio button[data-copy-prompt][type] { width: 240px; min-width: 0; white-space: normal; }
+#portfolio .journal-copy-prompt::before { box-shadow: 3px -3px 0 -1px var(--ink), 3px -3px 0 0 currentColor; }
+#portfolio button[data-copy-state="success"][type] { width: 54px; min-width: 54px; min-height: 54px; padding: 12px; border-radius: 50%; font-size: 0; gap: 0; }
+#portfolio button[data-copy-state="success"]::before { display: none; }
+#portfolio button[data-copy-state="success"]::after {
+  content: "";
+  display: block;
+  width: 19px;
+  height: 10px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(-45deg);
+  animation: glass-tick 320ms ease-out both;
+}
+@keyframes glass-tick { from { clip-path: inset(0 100% 0 0); scale: .7; } to { clip-path: inset(0); scale: 1; } }
+#portfolio .journal-copy a { margin: 4px 3px; font-size: .95rem; line-height: 1.35; }
+#portfolio .entry-read { padding: 10px 18px; border: 1px solid var(--rule); border-radius: 16px; background: #ffffff40; box-shadow: inset 0 1px 0 #fff8, 0 8px 20px #0001; text-decoration: none; }
+#portfolio .journal-nav { flex-wrap: wrap; padding-block: 16px; }
+#portfolio .journal-nav nav { flex-wrap: wrap; gap: 10px; }
+#portfolio .portfolio-nav { flex-wrap: wrap; padding-block: 12px; gap: 12px; }
+#portfolio .portfolio-nav > div { flex-wrap: wrap; gap: 8px; }
+#portfolio .skill-tile { padding: 8px; }
+#portfolio .social-links a { padding: 10px; }
+@media (max-width: 640px) {
+  #portfolio .journal-nav { gap: 12px; }
+  #portfolio .journal-nav a { padding: 9px 12px; }
+  #portfolio .journal-footer { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #portfolio :is(a, button, summary), .build-controls button { transition: none; }
+  #portfolio button[data-copy-state="success"]::after { animation: none; }
+}

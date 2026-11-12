@@ -2,6 +2,7 @@ import './portfolio.css';
 import './journal-page.css';
 import './spatial-article.css';
 import { mountPortfolioVelocity } from './portfolio-velocity.js';
+import './glass-controls.css';
 
 const article = document.querySelector('#journal-post');
 if (article) {

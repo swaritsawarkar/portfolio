@@ -1,11 +1,11 @@
 import './portfolio-velocity.css';
 
 const layers = [
-  { selector: '.journal-hero h1, .journal-hero-bottom > p, .journal-copy-cta, .journal-repo, .journal-skill > .journal-copy, .journal-article > .journal-copy, .journal-prompt > *, .journal-nav > *, .journal-footer > *, .journal-entry-link > *', distance: 9, shear: .06 },
+  { selector: '.journal-hero h1, .journal-hero-bottom > p, .journal-copy-cta, .journal-repo, .journal-skill > .journal-copy, .journal-article > .journal-copy, .journal-prompt > *, .journal-nav > *, .journal-footer > *, .journal-entry-link > *, .hero-heading, .nav-example > header, .guide-opening, .guide-ending', distance: 18, shear: .12 },
   { selector: '.hero-type', distance: 19, shear: .28 },
   { selector: '.portrait', distance: -26, shear: 0 },
   { selector: '.chapter-head > *', distance: 22, shear: .32 },
-  { selector: '.work-feature, .creative-grid > figure, .journal-shot, .work-archive-item, .win-photo', distance: -14, shear: .16 },
+  { selector: '.work-feature, .creative-grid > figure, .journal-shot, .work-archive-item, .win-photo, .spatial-reference', distance: -22, shear: .2 },
   { selector: '.work-caption > *, .work-links > *, .about-grid > *, .skill-row > *, .timeline-year > *, .contact-grid > *', distance: 11, shear: .08 },
 ];
 
