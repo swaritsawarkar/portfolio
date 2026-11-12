@@ -16,7 +16,9 @@ body.journal-page { --ink: #f3f0e9; --paper: #25241f; margin: 0; background: var
 .journal-entry { padding: 36px 0; }
 #portfolio .journal-entry-link { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(24px, 5vw, 64px); align-items: center; text-decoration: none; }
 .journal-entry img { display: block; width: 100%; height: auto; }
-.journal-effects-cover { display: grid; gap: 6px; align-content: center; min-height: 300px; padding: 32px; border-radius: 28px; background: #3e1116; color: #f3f0e9; font: 400 clamp(1.7rem, 3vw, 2.5rem)/1.15 Georgia, serif; }
+.journal-effects-cover { height: 340px; border-radius: 28px; overflow: hidden; isolation: isolate; background: #09090c; color: #f3f0e9; }
+.journal-effects-cover > span { display: grid; height: 100%; place-items: center; font: 2rem Georgia, serif; }
+.journal-cover-pause { margin-top: 16px; }
 .journal-entry h2 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(1.9rem, 3.5vw, 3rem); line-height: 1.12; letter-spacing: -.03em; text-wrap: balance; }
 #portfolio .journal-entry p { margin-top: 20px; color: var(--muted); max-width: 48ch; }
 .entry-read { display: inline-block; margin-top: 24px; text-decoration: underline; text-underline-offset: .28em; }

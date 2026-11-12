@@ -7,6 +7,8 @@ import { mountJournalAnalytics } from './portfolio-analytics.js';
 
 mountJournalAnalytics();
 
+if (document.querySelector('[data-effects-cover]')) await import('./journal-effects-cover.jsx');
+
 const article = document.querySelector('#journal-post');
 if (article) {
   const { journalContent, mountJournal } = await import('./journal.js');
