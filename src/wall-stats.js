@@ -1,3 +1,5 @@
+import { journalPages } from './journal-pages.js';
+
 const projectNames = {
   'strikeout-os': 'STRIKEOUT OS', 'pixelcut-pro': 'PixelCut Pro', '10thhojayega': '10thHoJayega',
   'shorts-channel-os': 'Shorts Channel OS', 'ai-attention-analyzer': 'AI Attention Analyzer',
@@ -19,7 +21,7 @@ const dayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'num
 const dateFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const escape = (text) => String(text ?? '').replace(/[&<>"']/g, (char) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-const label = (value) => projectNames[value] ?? labels[value] ?? value;
+const label = (value) => journalPages[value] ?? projectNames[value] ?? labels[value] ?? value;
 
 function rows(title, entries) {
   const max = Math.max(1, ...entries.map(({count}) => count));
@@ -31,6 +33,7 @@ function rows(title, entries) {
 }
 
 function activityLabel({kind, detail}) {
+  if (kind === 'journal') return 'Visited ' + label(detail);
   if (kind === 'section') return 'Viewed ' + label(detail);
   if (kind === 'project') return 'Opened ' + label(detail);
   if (kind === 'outbound') return 'Clicked ' + label(detail);
@@ -45,6 +48,8 @@ export function renderStats(container, data) {
     ['Active recently', data.recently_active, 'Arrival or action in the last 5 min'],
     ['Entered portfolio', data.entered, 'Reached the page after the intro'],
     ['Signed the wall', data.signed, 'Visits with a saved signature'],
+    ['Journal readers', data.journal_readers ?? 0, 'Sessions that visited a journal page'],
+    ['Journal page reads', data.journal_reads ?? 0, 'Each page counted once per session'],
   ];
   const peak = Math.max(1, ...data.daily.map(({count}) => count));
   const breakdown = (kind) => data.breakdown.filter((entry) => entry.kind === kind).slice(0, 8)
@@ -59,6 +64,7 @@ export function renderStats(container, data) {
         count / peak * 100 + '%"></div><span>' + (data.daily.length <= 7 || index === 0 || index === data.daily.length - 1 ? escape(date) : '') + '</span></li>';
     }).join('') + '</ol></section><div class="stats-splits">' +
     rows('Traffic sources', data.sources) + rows('Devices', data.devices) +
+    rows('Journal pages', breakdown('journal')) +
     rows('Sections viewed', breakdown('section')) + rows('Projects opened', breakdown('project')) +
     rows('Links clicked', breakdown('outbound')) + rows('Intro and build', breakdown('experience')) +
     '</div><section class="stats-panel"><h2>Recent visitors</h2>' + (data.latest.length
@@ -69,5 +75,5 @@ export function renderStats(container, data) {
         (visitor.actions.length ? '<ul>' + visitor.actions.map((action) =>
           '<li>' + escape(activityLabel(action)) + '</li>').join('') + '</ul>' : '<p class="stats-muted">Arrived at the intro.</p>') +
         '</article>').join('') + '</div>' : '<p class="stats-muted">No visits in this period.</p>') +
-    '</section><p class="stats-muted">Stats start from the day tracking was added. Visitors are anonymous unless they sign the wall.</p>';
+    '</section><p class="stats-muted">Journal tracking starts with this update; earlier journal visits are unavailable. Visitors are anonymous unless they sign the wall.</p>';
 }

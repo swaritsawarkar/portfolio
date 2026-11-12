@@ -6,6 +6,9 @@ import './nav-guide.css';
 import { mountNavHeroMotion } from './nav-hero-motion.js';
 import { mountPortfolioVelocity } from './portfolio-velocity.js';
 import './glass-controls.css';
+import { mountJournalAnalytics } from './portfolio-analytics.js';
+
+mountJournalAnalytics();
 
 const components = import.meta.glob('./nav-examples/*.jsx', { eager: true, import: 'default' });
 const sources = import.meta.glob('./nav-examples/*.jsx', { eager: true, query: '?raw', import: 'default' });

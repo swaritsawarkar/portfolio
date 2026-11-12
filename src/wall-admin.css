@@ -18,7 +18,7 @@ body { margin: 0; background: var(--ink); color: var(--paper); font: 1rem/1.5 'D
 .stats-range { max-width: 180px; margin-bottom: 18px; }
 .stats-range select { padding: 8px; color: var(--paper); background: var(--wall-surface); border: 1px solid var(--wall-line); border-radius: 3px; font: inherit; }
 .stats-cards, .stats-splits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
-.stats-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stats-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .stats-panel, .stats-cards section { padding: clamp(12px, 2.3vw, 22px); background: var(--wall-surface); border-radius: 4px; }
 .admin-stats h2 { font-size: .97rem; font-weight: 600; margin: 0 0 10px; }
 .stats-panel h2 small { margin-left: 6px; color: var(--muted); font-size: .7rem; }

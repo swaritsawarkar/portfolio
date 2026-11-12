@@ -1,4 +1,5 @@
 import { portfolioStatsStore, signingConfigured } from './signing-store.js';
+import { journalPage } from './journal-pages.js';
 
 const sessionKey = 'portfolio.analytics.session.v1';
 const idleWindow = 30 * 60 * 1000;
@@ -65,6 +66,13 @@ function outbound(link) {
     'github.com': 'github', 'linkedin.com': 'linkedin', 'instagram.com': 'instagram',
     'open.spotify.com': 'spotify', 'jiostar.com': 'hotstar', 'hotstar.com': 'hotstar',
   })[host] ?? 'project-site';
+}
+
+export function mountJournalAnalytics() {
+  const page = journalPage(location.pathname);
+  if (!page) return;
+  mountPortfolioAnalytics(document.body);
+  track('journal', page);
 }
 
 export function mountPortfolioAnalytics(portfolio) {
