@@ -55,3 +55,7 @@ The guide hero uses two inert copies of the real navigation previews. Its single
 ## 3D websites article
 
 `/journal/3d-websites` is a static, directly readable article using three supplied website references. It distinguishes screenshot observations from verified implementation and links to this portfolio’s WebGL and scroll-motion source. Its copy buttons reuse the existing journal handler with the article’s own prompt. Keep the quoted source excerpt aligned with `src/main.js`.
+
+## Live effects guide
+
+`/journal/website-effects` runs four real WebGL demos with copyable example, component, and CSS files. Source under `src/effects` retains its license; examples under `src/effect-examples` are the same files shown in the guide. No new dependencies are required. Demos unmount offscreen, while the tab is hidden, or when paused; reduced motion starts them paused. Apply `20261113000200_effects_journal_stats.sql` before deploying its journal tracking. The homepage does not import the guide or its styles.

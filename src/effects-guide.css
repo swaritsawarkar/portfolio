@@ -1,0 +1,27 @@
+.effects-article .journal-intro { padding: 48px 0 28px; }
+#portfolio .effects-article .journal-intro h1 { max-width: 1100px; font-size: clamp(3rem, 6vw, 5.2rem); }
+.effects-article .journal-intro p { max-width: 62ch !important; }
+.effects-toggle { margin-bottom: 24px; }
+.effect-section { padding: 44px 0 56px; border-top: 1px solid var(--rule); scroll-margin-top: 24px; }
+.effect-section > header { margin-bottom: 26px; }
+.effect-section h2 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(2.1rem, 4vw, 3.6rem); line-height: 1.1; letter-spacing: -.03em; }
+.effect-section header p { margin-top: 16px !important; max-width: 70ch; color: var(--muted); line-height: 1.65; }
+.effect-columns { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.effect-preview-side, .effect-source { min-width: 0; }
+.effect-preview { height: 410px; border-radius: 28px; overflow: hidden; isolation: isolate; background: #0c0b12; position: relative; }
+.effect-preview > div { height: 100%; }
+.effect-controls, .effect-files { display: flex; gap: 10px; flex-wrap: wrap; }
+.effect-controls { margin-top: 18px; }
+.effect-files { margin-bottom: 14px; }
+.effect-filename { margin-bottom: 12px !important; overflow-wrap: anywhere; color: var(--paper); }
+#portfolio .effect-files button[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
+.effect-source pre { height: 342px; overflow: auto; max-width: 100%; border: 1px solid var(--rule); border-radius: 22px; padding: 20px; background: #eae6dd; color: #25241f; white-space: pre; tab-size: 2; font: .85rem/1.7 ui-monospace, monospace; scrollbar-color: #918b7d #eae6dd; }
+.effect-copy { margin-top: 16px; min-width: 140px; }
+.effect-status { min-height: 2em; margin-top: 12px !important; color: var(--muted); }
+.effect-still { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; text-align: center; color: #f3f0e9; font: 2.5rem/1.2 Georgia, serif; }
+.effect-still span { font: 1rem/1.5 'DM Sans', sans-serif; }
+.effects-setup { max-width: 72ch; margin: 0 0 20px; color: var(--muted); line-height: 1.7; }
+.effects-setup p { margin-block: 18px; }
+.effects-setup code { color: var(--paper); }
+@media (max-width: 900px) { .effect-columns { grid-template-columns: 1fr; gap: 24px; } .effect-source pre { height: 320px; } }
+@media (max-width: 640px) { .effect-preview { height: 360px; border-radius: 24px; } .effect-controls button { flex: 1; } }
