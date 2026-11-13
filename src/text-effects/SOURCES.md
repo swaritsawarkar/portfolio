@@ -1,0 +1,1 @@
+Components copied from https://github.com/DavidHDev/react-bits/tree/main/src/content/TextAnimations on 2026-11-13. Retained under the included LICENSE.md (MIT + Commons Clause). Official demos: https://reactbits.dev. Local wrapper provides play/stop controls, static reduced-motion alternatives, and offscreen cleanup.

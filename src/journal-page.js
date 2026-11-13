@@ -1,5 +1,6 @@
 import './portfolio.css';
 import './journal-page.css';
+import './journal-text-effects.css';
 import './spatial-article.css';
 import { mountPortfolioVelocity } from './portfolio-velocity.js';
 import './glass-controls.css';
@@ -23,3 +24,5 @@ if (promptArticle) {
 }
 
 mountPortfolioVelocity(document.body, matchMedia('(prefers-reduced-motion: reduce)'));
+
+if (document.querySelector('[data-text-demo]')) await import('./journal-text-effects.jsx');

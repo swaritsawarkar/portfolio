@@ -13,6 +13,7 @@ export default defineConfig({
         portfolio: fileURLToPath(new URL('./index.html', import.meta.url)),
         admin: fileURLToPath(new URL('./admin/index.html', import.meta.url)),
         journal: fileURLToPath(new URL('./journal/index.html', import.meta.url)),
+        textEffects: fileURLToPath(new URL('./journal/text-effects/index.html', import.meta.url)),
         effectsArticle: fileURLToPath(new URL('./journal/website-effects/index.html', import.meta.url)),
         threeDArticle: fileURLToPath(new URL('./journal/3d-websites/index.html', import.meta.url)),
         bottomNavigation: fileURLToPath(new URL('./journal/bottom-navigation-styles/index.html', import.meta.url)),
@@ -25,7 +26,7 @@ export default defineConfig({
 function mountPageRoutes(server) {
   server.middlewares.use((request, _response, next) => {
     if (/^\/admin\/stats\/?(?:\?|$)/.test(request.url)) request.url = '/admin/index.html';
-    request.url = request.url.replace(/^(\/journal(?:\/(?:ai-web-design-skills|bottom-navigation-styles|3d-websites|website-effects))?)\/?(?=\?|$)/, '$1/index.html');
+    request.url = request.url.replace(/^(\/journal(?:\/(?:text-effects|ai-web-design-skills|bottom-navigation-styles|3d-websites|website-effects))?)\/?(?=\?|$)/, '$1/index.html');
     next();
   });
 }
