@@ -35,6 +35,7 @@ for (const panel of document.querySelectorAll('[data-text-demo]')) {
     button.textContent = 'Stop / reset demo';
     button.setAttribute('aria-pressed', 'true');
   });
+  button.disabled = false;
   reduced.addEventListener('change', stop);
   new IntersectionObserver(([entry]) => {
     const rect = panel.getBoundingClientRect();
