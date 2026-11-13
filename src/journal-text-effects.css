@@ -23,12 +23,12 @@
 .text-effects-page .journal-prompt pre { font-size: .9rem; padding: clamp(18px, 3vw, 32px); line-height: 1.8; }
 @media (prefers-reduced-motion: reduce) { .text-demo-stage { box-shadow: none; } }
 
-.text-motion-band { overflow: hidden; padding: 18px 0; margin: 30px 0 48px; border-block: 2px solid currentColor; color: #b72e25; }
-.text-motion-track { width: max-content; margin-left: -90px; font: 800 clamp(2.8rem, 7vw, 6rem)/1.05 'Manrope', sans-serif; letter-spacing: -.06em; }
-@media (prefers-reduced-motion: no-preference) {
-  body.text-effects-page .text-motion-track.is-velocity-moving { transform: translate3d(var(--portfolio-drift), 0, 0) skewX(var(--portfolio-shear)); }
-}
 @supports (animation-timeline: scroll()) {
   .text-effects-page::before { content: ''; position: fixed; left: 0; top: 0; right: 0; height: 4px; background: #b72e25; transform-origin: left; z-index: 99; animation: text-reading-progress linear both; animation-timeline: scroll(); pointer-events: none; }
   @keyframes text-reading-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 }
+
+.rotating-demo-line { display: flex; align-items: center; justify-content: center; gap: .22em; width: 100%; min-width: 0; white-space: nowrap; font-size: clamp(1.7rem, 4vw, 4rem); line-height: 1.4; }
+.rotating-demo-label { flex: none; }
+.rotating-demo-line .text-rotate-highlight { max-width: 60%; overflow: hidden; }
+.rotating-demo-mask { overflow: hidden; padding-block: .12em; }

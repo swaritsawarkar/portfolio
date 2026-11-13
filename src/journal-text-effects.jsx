@@ -9,7 +9,7 @@ import './journal-text-effects.css';
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const demos = {
-  'rotating-text': () => <RotatingText texts={['Make it move.', 'Make it yours.', 'Make it matter.']} />,
+  'rotating-text': () => <div className="rotating-demo-line"><span className="rotating-demo-label">React is</span><RotatingText texts={['creative', 'interactive', 'playful', 'awesome']} highlight highlightColor="#f3f0e9" splitLevelClassName="rotating-demo-mask" splitBy="words" /></div>,
   'blur-text': () => <BlurText text="Clarity comes into focus." loop loopDelay={2} />,
   'split-flap-text': () => <SplitFlapText fontSize="clamp(22px, 5.8vw, 78px)" gap={3} />,
   'tech-text': () => <TechText fontSize={150} fontFamily="Manrope" fontWeight={800} color="#f3f0e9" accentColor="#ee5146" />,
