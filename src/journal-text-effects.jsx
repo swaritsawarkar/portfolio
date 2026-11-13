@@ -36,5 +36,8 @@ for (const panel of document.querySelectorAll('[data-text-demo]')) {
     button.setAttribute('aria-pressed', 'true');
   });
   reduced.addEventListener('change', stop);
-  new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) stop(); }).observe(panel);
+  new IntersectionObserver(([entry]) => {
+    const rect = panel.getBoundingClientRect();
+    if (!entry.isIntersecting && (rect.bottom <= 0 || rect.top >= innerHeight)) stop();
+  }).observe(panel);
 }
