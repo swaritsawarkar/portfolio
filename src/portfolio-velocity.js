@@ -1,6 +1,8 @@
 import './portfolio-velocity.css';
 
 const layers = [
+  { selector: '.text-motion-track', distance: 85, shear: .5 },
+  { selector: '.text-effects-page .text-demo', distance: -32, shear: .65 },
   { selector: '.journal-hero h1, .journal-hero-bottom > p, .journal-copy-cta, .journal-repo, .journal-skill > .journal-copy, .journal-article > .journal-copy, .journal-prompt > *, .journal-nav > *, .journal-footer > *, .journal-entry-link > *, .hero-heading, .nav-example > header, .guide-opening, .guide-ending', distance: 18, shear: .12 },
   { selector: '.hero-type', distance: 19, shear: .28 },
   { selector: '.portrait', distance: -26, shear: 0 },
@@ -25,6 +27,7 @@ export function mountPortfolioVelocity(portfolio, reducedMotion) {
   };
   for (const { selector, distance, shear } of layers) {
     for (const [index, node] of [...portfolio.querySelectorAll(selector)].entries()) {
+      if (node.matches('.text-effects-page .journal-skill > .journal-copy')) continue;
       targets.set(node, { distance: distance * (index % 2 ? .82 : 1), shear });
     }
   }

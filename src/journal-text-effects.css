@@ -8,3 +8,27 @@
 .text-effects-thumbnail span { font-size: .85rem; letter-spacing: .12em; }
 .text-effects-thumbnail em { color: #f08178; font: italic clamp(1.3rem, 3vw, 2rem) Georgia, serif; }
 @media (max-width: 640px) { .text-demo-stage { padding: 12px; } }
+
+#portfolio.journal-page { font-family: 'Manrope', sans-serif; font-weight: 500; }
+#portfolio.journal-page h1, #portfolio.journal-page h2, #portfolio.journal-page h3,
+#portfolio.journal-page h1 em, #portfolio.journal-page h2 em { font-family: 'Manrope', sans-serif; font-weight: 800; font-style: normal; }
+#portfolio.journal-page button, #portfolio.journal-page a { font-family: inherit; }
+.text-effects-page .journal-copy:has(.text-demo) { max-width: none; }
+.text-effects-page .text-demo-stage { height: clamp(300px, 32vw, 440px); font: 800 clamp(2rem, 5vw, 4.4rem)/1.1 'Manrope', sans-serif; border-radius: 14px; box-shadow: 0 22px 60px #25241f19; }
+.text-effects-page .focus-word { font: 800 clamp(2.5rem, 6vw, 6rem)/1.1 'Manrope', sans-serif; }
+.text-effects-page .focus-container { gap: .5em; }
+.text-effects-page .split-flap-text { font-family: 'Manrope', sans-serif; font-weight: 800; }
+.text-effects-thumbnail strong { font-family: 'Manrope', sans-serif; font-weight: 800; }
+.text-effects-page .journal-prompt .journal-copy h2 { max-width: 20ch; }
+.text-effects-page .journal-prompt pre { font-size: .9rem; padding: clamp(18px, 3vw, 32px); line-height: 1.8; }
+@media (prefers-reduced-motion: reduce) { .text-demo-stage { box-shadow: none; } }
+
+.text-motion-band { overflow: hidden; padding: 18px 0; margin: 30px 0 48px; border-block: 2px solid currentColor; color: #b72e25; }
+.text-motion-track { width: max-content; margin-left: -90px; font: 800 clamp(2.8rem, 7vw, 6rem)/1.05 'Manrope', sans-serif; letter-spacing: -.06em; }
+@media (prefers-reduced-motion: no-preference) {
+  body.text-effects-page .text-motion-track.is-velocity-moving { transform: translate3d(var(--portfolio-drift), 0, 0) skewX(var(--portfolio-shear)); }
+}
+@supports (animation-timeline: scroll()) {
+  .text-effects-page::before { content: ''; position: fixed; left: 0; top: 0; right: 0; height: 4px; background: #b72e25; transform-origin: left; z-index: 99; animation: text-reading-progress linear both; animation-timeline: scroll(); pointer-events: none; }
+  @keyframes text-reading-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
